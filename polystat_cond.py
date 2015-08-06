@@ -86,7 +86,7 @@ def main(in_poly, in_param):
 				arcpy.MakeTableView_management("ras_record_lyr", "ras_view")
 				arcpy.Delete_management("temp_stat_record")
 			arcpy.Append_management("ras_view", param_table, "NO_TEST")
-			print "Polygon with LineOID: " + str(row[0]) + " is complete..."
+			arcpy.AddMessage("Polygon with LineOID: " + str(row[0]) + " is complete...")
 	##### result = arcpy.FeatureClassToFeatureClass("temp_ply_view", outDir, "ws_params.shp")
 	return param_table
 
