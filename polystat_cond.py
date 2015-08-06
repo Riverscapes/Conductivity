@@ -37,24 +37,24 @@ envDir = arcpy.GetParameterAsText(1) # directory containing the conductivity mod
 outDir = arcpy.GetParameterAsText(2) # directory location for the final polygon feature class
 ##### outDir = r"C:\repo\conductivity"
 param_list = [["AtmCa", "ca_avg_250"], # list of raster dataset names and associated field names
-			["Cao", "cao_19jan10"],
-			["EVI", "evi_max_10y"],
-			["LST32", "lst32f_usgs"],
-			["MAXWD", "maxwd_usgs"],
-			["MEANP", "meanp_usgs"],
+			["CaO_Mean", "cao_19jan10"],
+			["EVI_MaxAve", "evi_max_10y"],
+			["LST32AVE", "lst32f_usgs"],
+			["MAXWD_WS", "maxwd_usgs"],
+			["MEANP_WS", "meanp_usgs"],
 			["AtmMg", "mg_avg_250"],
-			["MgO", "mgo_19jan10"],
-			["pmin", "minp_usgs"],
-			["SO4", "so4_avg_250"],
-			["tmax", "tmax_usgs"],
-			["SumP", "sumave_p"],
-			["XWD", "xwd_usgs"],
-			["BDH", "bdh_usgs"],
-			["KFCT", "kfact_usgs"],
-			["LPREM", "lperm_2feb10"],
-			["PRMH", "permh_usgs"],
-			["S", "s_23aug10"],
-			["UCS", "ucs_19jan10"]]
+			["MgO_Mean", "mgo_19jan10"],
+			["MINP_WS", "minp_usgs"],
+			["AtmSO4", "so4_avg_250"],
+			["TMAX_WS", "tmax_usgs"],
+			["SumAve_P", "sumave_p"],
+			["XWD_WS", "xwd_usgs"],
+			["BDH_AVE", "bdh_usgs"],
+			["KFCT_AVE", "kfact_usgs"],
+			["LPREM_mean", "lperm_2feb10"],
+			["PRMH_AVE", "permh_usgs"],
+			["S_Mean", "s_23aug10"],
+			["UCS_Mean", "ucs_19jan10"]]
 
 # main function that performs the parameter summary
 def main(in_poly, in_param):
@@ -74,7 +74,7 @@ def main(in_poly, in_param):
 			arcpy.AddField_management(ras_record, "LineOID", "LONG")
 			arcpy.CalculateField_management(ras_record, "LineOID", "!Value!", "PYTHON_9.3")
 			for r in in_param:
-				field_name = r[0] + "_MN"
+				field_name = r[0]
 				ras_name = envDir + "\\" + r[1]
 				arcpy.AddField_management(ras_record, field_name, "DOUBLE")
 				ZonalStatisticsAsTable(ras_record, "LineOID", ras_name, "temp_stat_record", "DATA", "MEAN")
