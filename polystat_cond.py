@@ -6,7 +6,7 @@
 #				Olson et al Random Forest conductivity model.
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, Spatial Analyst extension
-# version:		0.1
+# version:		0.1.1
 
 import os, sys, time, gc, arcpy
 from arcpy.sa import *
@@ -86,7 +86,7 @@ def main(in_poly, in_param):
 				arcpy.MakeTableView_management("ras_record_lyr", "ras_view")
 				arcpy.Delete_management("temp_stat_record")
 			arcpy.Append_management("ras_view", param_table, "NO_TEST")
-			arcpy.AddMessage("Polygon with LineOID: " + str(row[0]) + " is complete...")
+			arcpy.AddMessage("Polygon with LineOID: " + str(round(row[0], 0)) + " is complete...")
 	##### result = arcpy.FeatureClassToFeatureClass("temp_ply_view", outDir, "ws_params.shp")
 	return param_table
 
