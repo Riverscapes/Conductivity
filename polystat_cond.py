@@ -6,6 +6,7 @@
 #				Olson et al Random Forest conductivity model.
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, Spatial Analyst extension
+# version:		0.1
 
 import os, sys, time, gc, arcpy
 from arcpy.sa import *
