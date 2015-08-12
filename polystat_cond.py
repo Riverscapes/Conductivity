@@ -6,13 +6,12 @@
 #				Olson et al Random Forest conductivity model.
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, Spatial Analyst extension
-# version:		0.1.1
+# version:		0.1.2
+# branch:		dev-in_memory
 
-import os, sys, time, gc, arcpy
+import os, sys, time, arcpy
 from arcpy.sa import *
 from time import strftime
-# enable garbage collection
-gc.enable()
 
 # start processing time
 startTime = time.time()
@@ -21,9 +20,9 @@ arcpy.AddMessage("Processing started at " + str(printTime))
 arcpy.AddMessage("------------------------------------")
 
 # create scratch workspace and ArcPy environment settings
-temp_dir = arcpy.GetSystemEnvironment("TEMP")
-scratch_gdb = arcpy.CreateFileGDB_management(temp_dir, "scratch.gdb", "CURRENT")
-arcpy.env.workspace = temp_dir + r"\scratch.gdb"
+### temp_dir = arcpy.GetSystemEnvironment("TEMP")
+### scratch_gdb = arcpy.CreateFileGDB_management(temp_dir, "scratch.gdb", "CURRENT")
+### arcpy.env.workspace = temp_dir + r"\scratch.gdb"
 arcpy.env.overwriteOutput = True
 
 # Check out Spatial Analyst
@@ -31,11 +30,9 @@ arcpy.CheckOutExtension("Spatial")
 
 # input variables:
 calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-##### calc_ply = r"C:\repo\conductivity\MFJD_huc6_catch.shp"
-envDir = arcpy.GetParameterAsText(1) # directory containing the conductivity model raster inputs
-##### envDir = r"C:\JL\ISEMP\Data\ec\model\Grids"
-outDir = arcpy.GetParameterAsText(2) # directory location for the final polygon feature class
-##### outDir = r"C:\repo\conductivity"
+outDir = arcpy.GetParameterAsText(1) # directory location for the final polygon feature class
+envDir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs
+
 param_list = [["AtmCa", "ca_avg_250"], # list of raster dataset names and associated field names
 			["CaO_Mean", "cao_19jan10"],
 			["EVI_MaxAve", "evi_max_10y"],
@@ -61,38 +58,43 @@ def main(in_poly, in_param):
 	arcpy.AddMessage("Calculating statistics for model input parameters, per polygon...")
 	arcpy.MakeFeatureLayer_management(in_poly, "in_ply_lyr")
 	# create blank table with fields for model parameters
-	param_table = arcpy.CreateTable_management(scratch_gdb, "param_table")
+	param_table = arcpy.CreateTable_management("in_memory", "param_table")
 	arcpy.AddField_management(param_table, "LineOID", "SHORT")
-	for p in param_list:
- 		arcpy.AddField_management(param_table, p[0] + "_MN", "DOUBLE")
+	for p in in_param:
+ 		arcpy.AddField_management(param_table, p[0], "DOUBLE")
  	# main processing loop
 	with arcpy.da.SearchCursor(in_poly, ["LineOID"]) as cursor:
 		for row in cursor:
 			expr = """ "LineOID" = """ + str(row[0])
 			arcpy.SelectLayerByAttribute_management("in_ply_lyr", "NEW_SELECTION", expr)
-			ras_record = arcpy.PolygonToRaster_conversion("in_ply_lyr", "LineOID", "ras_record", "CELL_CENTER", "#", 30)
+			ras_record = arcpy.PolygonToRaster_conversion("in_ply_lyr", "LineOID", "in_memory\\ras_record", "CELL_CENTER", "#", 30)
 			arcpy.AddField_management(ras_record, "LineOID", "LONG")
 			arcpy.CalculateField_management(ras_record, "LineOID", "!Value!", "PYTHON_9.3")
+			arcpy.CalculateStatistics_management (ras_record)
 			for r in in_param:
 				field_name = r[0]
 				ras_name = envDir + "\\" + r[1]
+				zstat_result = "in_memory\\zstat_result"
 				arcpy.AddField_management(ras_record, field_name, "DOUBLE")
-				ZonalStatisticsAsTable(ras_record, "LineOID", ras_name, "temp_stat_record", "DATA", "MEAN")
+				ZonalStatisticsAsTable(ras_record, "LineOID", ras_name, zstat_result, "DATA", "MEAN")
 				arcpy.MakeRasterLayer_management(ras_record, "ras_record_lyr")
-				arcpy.MakeTableView_management("temp_stat_record", "temp_stat_view")
-				arcpy.AddJoin_management("ras_record_lyr", "LineOID", "temp_stat_view", "LineOID", "KEEP_ALL")
-				arcpy.CalculateField_management("ras_record_lyr", "VAT_ras_record." + field_name, "!temp_stat_record.MEAN!", "PYTHON_9.3")
+				arcpy.MakeTableView_management(zstat_result, "zstat_result_view")
+				arcpy.AddJoin_management("ras_record_lyr", "LineOID", "zstat_result_view", "LineOID", "KEEP_ALL")
+				arcpy.CalculateField_management("ras_record_lyr", "ras_record.vat." + field_name, "!zstat_result_view.MEAN!", "PYTHON_9.3")
 				arcpy.RemoveJoin_management("ras_record_lyr")
 				arcpy.MakeTableView_management("ras_record_lyr", "ras_view")
-				arcpy.Delete_management("temp_stat_record")
+				arcpy.Delete_management(zstat_result)
 			arcpy.Append_management("ras_view", param_table, "NO_TEST")
-			arcpy.AddMessage("Polygon with LineOID: " + str(round(row[0], 0)) + " is complete...")
+			arcpy.AddMessage("Polygon with LineOID " + str(row[0]) + " is complete...")
 	##### result = arcpy.FeatureClassToFeatureClass("temp_ply_view", outDir, "ws_params.shp")
+	arcpy.Delete_management(row)
+	arcpy.Delete_management(cursor)
+	arcpy.Delete_management(ras_record)
 	return param_table
 
 out_table = main(calc_ply, param_list)
 arcpy.TableToTable_conversion(out_table, outDir, "ws_cond_param.dbf")
-arcpy.Delete_management(scratch_gdb)
+arcpy.Delete_management(out_table)
 
 # end processing time
 printTime = strftime("%a, %d %b %Y %H:%M:%S")
