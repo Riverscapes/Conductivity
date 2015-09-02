@@ -19,7 +19,7 @@ Download the Conductivity Tools toolbox file (Conductivity Tools.tbx) and python
 * *Output Workspace* - A folder where the output table will be stored.
 * *Environmental Parameters Workspace* - The 19 environmental parameters that are used by the Random Forest predictive model should be stored as raster datasets in a single directory. The file name for each raster dataset is hard-coded into the tool. These raster datasets can be obtained by contacting the tool's author directly at ([jesse@southforkresearch.org)](jesse@southforkresearch.org).
 
-### Method Workflow
+### Automated Processing Steps
 1.  Calculate mean value for each parameter per catchment polygon.
 2.  Compile table with summarized environmental parameter values associated with each segment endpoint.
 3.  Predict conductivity values per segment endpoint record using random forest model (_Currently, this step must be performed in an R environment_).
