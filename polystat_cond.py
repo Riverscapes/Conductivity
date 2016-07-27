@@ -11,7 +11,6 @@
 import time, gc, arcpy
 from arcpy.sa import *
 from time import strftime
-gc.enable()
 
 # start processing time
 startTime = time.time()
@@ -55,6 +54,7 @@ param_list = [["AtmCa", "ca_avg_250"], # list of model parameter names and assoc
 def addParamFields(inFC, inParam):
     # prepare the input feature class by stripping all unnecessary fields and adding in blank model parameter fields
     arcpy.AddMessage("Preparing parameter fields in " + inFC + "...")
+    gc.enable()
     tmpFC = arcpy.FeatureClassToFeatureClass_conversion(inFC, "in_memory", "tmp_fc")
     field_obj_list = arcpy.ListFields(tmpFC)
     field_name_list = []
@@ -91,6 +91,7 @@ def calcParams(inFC, inParam):
                 arcpy.AddMessage("Parameter " + field_name + " is summarized...")
             arcpy.AddMessage("Polygon with LineOID " + str(row[0]) + " is complete...")
     arcpy.SelectLayerByAttribute_management("tmpFC", "CLEAR_SELECTION")
+    gc.disable()
     return "tmpFC"
 
 def main(inFC, inParam):
