@@ -8,7 +8,7 @@
 # dependencies: ESRI arcpy module, Spatial Analyst extension
 # version:		0.3
 
-import time, gc, arcpy
+import time, gc, sys, arcpy
 from arcpy.sa import *
 from time import strftime
 
@@ -24,12 +24,12 @@ arcpy.env.overwriteOutput = True
 arcpy.CheckOutExtension("Spatial")
 
 # input variables:
-calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-outDir = arcpy.GetParameterAsText(1) # directory location for the polygon feature class output
-envDir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs
-# calc_ply = r"C:\JL\Testing\Conductivity\inputs\catch_final.shp"
-# outDir = r"C:\JL\Testing\Conductivity\outputs"
-# envDir = r"C:\JL\ISEMP\Data\ec\model\Grids_rsmp"
+# calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
+# outDir = arcpy.GetParameterAsText(1) # directory location for the polygon feature class output
+# envDir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs
+calc_ply = r"C:\JL\Testing\Conductivity\HUC6\inputs\catch_finalCopy.shp"
+outDir = r"C:\JL\Testing\Conductivity\HUC6\outputs_20160802"
+envDir = r"C:\JL\ISEMP\Data\ec\model\Grids_rsmp"
 
 param_list = [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names
             ["CaO_Mean", "cao_19jan10"],
@@ -51,6 +51,15 @@ param_list = [["AtmCa", "ca_avg_250"], # list of model parameter names and assoc
             ["S_Mean", "s_23aug10"],
             ["UCS_Mean", "ucs_19jan10"]]
 
+def checkLineOID(inFC):
+    fieldName = "LineOID"
+    fields = arcpy.ListFields(inFC, fieldName)
+    for field in fields:
+        if field.name == fieldName:
+            return True
+        else:
+            return False
+
 def addParamFields(inFC, inParam):
     # prepare the input feature class by stripping all unnecessary fields and adding in blank model parameter fields
     arcpy.AddMessage("Preparing parameter fields in " + inFC + "...")
@@ -58,12 +67,16 @@ def addParamFields(inFC, inParam):
     tmpFC = arcpy.FeatureClassToFeatureClass_conversion(inFC, "in_memory", "tmp_fc")
     field_obj_list = arcpy.ListFields(tmpFC)
     field_name_list = []
-    for f in field_obj_list:
-        if not f.type == "Geometry" and not f.type == "OID" and not f.name == "LineOID":
-            field_name_list.append(str(f.name))
-    arcpy.DeleteField_management(tmpFC, field_name_list)
-    for p in inParam:
-        arcpy.AddField_management(tmpFC, p[0], "DOUBLE")
+    if checkLineOID(inFC) == True:
+        for f in field_obj_list:
+            if not f.type == "Geometry" and not f.type == "OID" and not f.name == "LineOID":
+                field_name_list.append(str(f.name))
+        arcpy.DeleteField_management(tmpFC, field_name_list)
+        for p in inParam:
+            arcpy.AddField_management(tmpFC, p[0], "DOUBLE")
+    else:
+        arcpy.AddMessage("The LineOID attribute field is missing! Cancelling process...")
+        sys.exit(0) # terminate process
     return tmpFC
 
 def calcParams(inFC, inParam):
