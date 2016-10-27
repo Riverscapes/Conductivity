@@ -3,7 +3,7 @@
 #				for the Conductivity model.  The tool calculates the mean value of 19 environmental parameters  
 #	            (raster datasets) per polygon (in this case, upstream catchment areas), and adds that value to a  
 #				field in the polygon's attribute table.  The resulting attribute table can then serve as an input 
-#				to the Olson et. al. Random Forest conductivity model.
+#				to the Olson et. al. Random Forest conductivity model (via the predict_cond.py script).
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, Spatial Analyst extension
 # version:		0.3
@@ -19,17 +19,12 @@ arcpy.AddMessage("Processing started at " + str(printTime))
 arcpy.AddMessage("------------------------------------")
 
 arcpy.env.overwriteOutput = True
-
-# check out Spatial Analyst
 arcpy.CheckOutExtension("Spatial")
 
 # input variables:
-# calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-# outDir = arcpy.GetParameterAsText(1) # directory location for the polygon feature class output
-# envDir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs
-calc_ply = r"C:\JL\Testing\Conductivity\HUC6\inputs\catch_finalCopy.shp"
-outDir = r"C:\JL\Testing\Conductivity\HUC6\outputs_20160802"
-envDir = r"C:\JL\ISEMP\Data\ec\model\Grids_rsmp"
+calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
+outDir = arcpy.GetParameterAsText(1) # directory location for the polygon feature class output
+envDir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs
 
 param_list = [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names
             ["CaO_Mean", "cao_19jan10"],
@@ -51,7 +46,17 @@ param_list = [["AtmCa", "ca_avg_250"], # list of model parameter names and assoc
             ["S_Mean", "s_23aug10"],
             ["UCS_Mean", "ucs_19jan10"]]
 
+
 def checkLineOID(inFC):
+    """Checks the input upstream catchment area polygon feature class for the
+    presence of an attribute field named 'LineOID'.
+
+    Args:
+        inFC: Input upstream catchment area polygon feature class
+
+    Returns:
+        A boolean true or false value.
+    """
     fieldName = "LineOID"
     fields = arcpy.ListFields(inFC, fieldName)
     for field in fields:
@@ -60,10 +65,20 @@ def checkLineOID(inFC):
         else:
             return False
 
+
 def addParamFields(inFC, inParam):
-    # prepare the input feature class by stripping all unnecessary fields and adding in blank model parameter fields
+    """Removes unnecessary fields and adding blank model parameter fields
+    to the input upstream catchment area polygon feature class.
+
+    Args:
+        inFC: Input upstream catchment area polygon feature class
+        inParam: 2D list of model parameter names and associated raster
+        dataset names
+
+    Returns:
+        tmp_fc: Polyline feature class with added parameter fields
+    """
     arcpy.AddMessage("Preparing parameter fields in " + inFC + "...")
-    gc.enable()
     tmpFC = arcpy.FeatureClassToFeatureClass_conversion(inFC, "in_memory", "tmp_fc")
     field_obj_list = arcpy.ListFields(tmpFC)
     field_name_list = []
@@ -79,9 +94,23 @@ def addParamFields(inFC, inParam):
         sys.exit(0) # terminate process
     return tmpFC
 
+
 def calcParams(inFC, inParam):
-    # build an attribute table for the input fc that will include an attribute field for each parameter with summarized values
+    """Build attribute table os summarized parameter values for the input
+    feature class.
+
+    Args:
+        inFC: Input upstream catchment area polygon feature class
+        inParam: 2D list of model parameter names and associated raster
+        dataset names
+
+    Returns:
+        An in-memory polygon feature class, with summarized parameter values
+        for each upstream catchment area polygon record.
+
+    """
     arcpy.AddMessage("Summarizing parameter values per catchment area polygon...")
+    gc.enable()
     with arcpy.da.SearchCursor(inFC, ["LineOID"]) as cursor:
         for row in cursor:
             expr = """ "LineOID" = """ + str(row[0])
@@ -107,14 +136,36 @@ def calcParams(inFC, inParam):
     gc.disable()
     return "tmpFC"
 
+
+def clear_inmemory():
+    """Clears all in_memory datasets."""
+    arcpy.env.workspace = r"IN_MEMORY"
+    arcpy.AddMessage("Deleting in_memory data...")
+
+    list_fc = arcpy.ListFeatureClasses()
+    list_tbl = arcpy.ListTables()
+
+    # for each FeatClass in the list of fcs's, delete it.
+    for f in list_fc:
+        arcpy.Delete_management(f)
+    # for each TableClass in the list of tab's, delete it.
+    for t in list_tbl:
+        arcpy.Delete_management(t)
+    return
+
+
 def main(inFC, inParam):
+    """Main processing function"""
     addFieldsFC = addParamFields(inFC, inParam)
     calcParamsFC = calcParams(addFieldsFC, inParam)
     arcpy.TableToTable_conversion(calcParamsFC, outDir, "ws_cond_param.dbf")
     arcpy.Delete_management(addFieldsFC)
     arcpy.Delete_management(calcParamsFC)
+    clear_inmemory()
 
-main(calc_ply, param_list)
+if __name__ == "__main__":
+    main(calc_ply, param_list)
+
 
 # end processing time
 printTime = strftime("%a, %d %b %Y %H:%M:%S")
