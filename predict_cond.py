@@ -43,8 +43,7 @@ def main(inFC, inParams, outFC, outMeta):
 
     Args:
         inFC: Input stream network polyline feature class
-        inParams: 2D list of model parameter names and associated raster
-        dataset names
+        inParams: table of summarized model parameter values
         outFC: Output stream network polyline feature class, with predicted
         conductivity values joined as new attribute fields.
     """
@@ -62,15 +61,17 @@ def main(inFC, inParams, outFC, outMeta):
         mWriter.currentRun.addOutput("Predicted Conductivity Output Feature Class", outFC)
 
         # variables for the subprocess function
-        pathName = os.path.dirname(os.path.abspath(__file__)) # filepath for the predict_cond.py file
+        #pathName = os.path.dirname(os.path.abspath(__file__)) # filepath for the predict_cond.py file
+        scriptPathName = os.path.realpath(__file__)
+        pathName = os.path.dirname(scriptPathName)
         scriptName = 'condRF.R'
         modelName = 'rf17bCnd9.rdata'
-        scriptPath = os.path.join(pathName, scriptName)
+        rScriptPath = os.path.join(pathName, scriptName)
         modelPath = os.path.join(pathName, modelName)
 
         argR = [modelPath, outDir, inParams] # list of arguments for condRF.R script
 
-        cmd = ['Rscript', scriptPath] + argR # construct R command line argument
+        cmd = ['Rscript', rScriptPath] + argR # construct R command line argument
 
         # send command to predict_conductivity.r
         process = subprocess.Popen(cmd, universal_newlines=True, shell=True)
@@ -106,6 +107,11 @@ def main(inFC, inParams, outFC, outMeta):
         sys.exit(0) # terminate process
     return
 
+#TESTING
+inFC = r"C:\JL\Projects\conductivity\Entiat\_1Sources\segments_1000m_20160930.gdb\segments1000"
+inParams = r"C:\JL\Projects\conductivity\Entiat\_2Model\ws_cond_param.dbf"
+outFC = r"C:\JL\Projects\conductivity\Entiat\_2Model\conductivity_entiat_20161103.shp"
+outMeta = r"C:\JL\Projects\conductivity\Entiat\_2Model\metadata_20161103.xml"
 
 if __name__ == "__main__":
     main(inFC, inParams, outFC, outMeta)
