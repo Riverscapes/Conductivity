@@ -107,11 +107,5 @@ def main(inFC, inParams, outFC, outMeta):
         sys.exit(0) # terminate process
     return
 
-#TESTING
-inFC = r"C:\JL\Projects\conductivity\Entiat\_1Sources\segments_1000m_20160930.gdb\segments1000"
-inParams = r"C:\JL\Projects\conductivity\Entiat\_2Model\ws_cond_param.dbf"
-outFC = r"C:\JL\Projects\conductivity\Entiat\_2Model\conductivity_entiat_20161103.shp"
-outMeta = r"C:\JL\Projects\conductivity\Entiat\_2Model\metadata_20161103.xml"
-
 if __name__ == "__main__":
     main(inFC, inParams, outFC, outMeta)
