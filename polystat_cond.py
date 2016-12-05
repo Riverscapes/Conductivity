@@ -154,9 +154,29 @@ def clear_inmemory():
     return
 
 
+def removeErrors(inFC):
+    """Removes rows from the catchment feature class where
+    error_code == 1, and returns an in_memory feature class.
+
+    Args:
+        inFC: catchment area polygon feature class
+
+    Returns:
+        In-memory polygon feature class with error records removed"""
+
+    arcpy.AddMessage("Removing catchment areas where error_code = 1...")
+
+    inFClyr = "inFClyr"
+    tmpFC = r"in_memory\tmpFC"
+    arcpy.MakeFeatureLayer_management(inFC, inFClyr)
+    arcpy.FeatureClassToFeatureClass_conversion(inFClyr, "in_memory", "tmpFC", """"error_code" IS NULL""")
+    return tmpFC
+
+
 def main(inFC, inParam):
     """Main processing function"""
-    addFieldsFC = addParamFields(inFC, inParam)
+    tmpFC = removeErrors(inFC)
+    addFieldsFC = addParamFields(tmpFC, inParam)
     calcParamsFC = calcParams(addFieldsFC, inParam)
     arcpy.TableToTable_conversion(calcParamsFC, outDir, "ws_cond_param.dbf")
     arcpy.Delete_management(addFieldsFC)
