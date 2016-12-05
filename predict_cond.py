@@ -19,12 +19,15 @@ inParams = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarize
 outFC = arcpy.GetParameterAsText(2) # stream network polyline feature class, with predicted conductivity
 outMeta = arcpy.GetParameterAsText(3) # metadata XML file
 
+#set environmental parameters
+arcpy.env.overwriteOutput = True
+
 def checkLineOID(inFC):
-    """Checks the input upstream catchment area polygon feature class for the
+    """Checks the input stream network polyline feature class for the
     presence of an attribute field named 'LineOID'.
 
     Args:
-        inFC: Input upstream catchment area polygon feature class
+        inFC: Input stream network polyline feature class
 
     Returns:
         A boolean true or false value.
@@ -36,6 +39,29 @@ def checkLineOID(inFC):
             return True
         else:
             return False
+
+
+def removeFields(inFC):
+    """Removes junk fields from final feature class output.
+
+    Args:
+        in FC: Input stream network polyline feature class
+
+    Returns:
+        Stream network polyline feature class, with field removed"""
+
+    arcpy.AddMessage("Cleaning up final output...")
+    field_obj_list = arcpy.ListFields(inFC)
+    field_name_list = []
+    for f in field_obj_list:
+        if not f.type == "Geometry" \
+                and not f.type == "OID" \
+                and not f.name == "LineOID"\
+                and not f.name == 'error_code'\
+                and not f.name == 'prdCond':
+            field_name_list.append(str(f.name))
+    arcpy.DeleteField_management(inFC, field_name_list)
+    return
 
 
 def main(inFC, inParams, outFC, outMeta):
@@ -90,6 +116,7 @@ def main(inFC, inParams, outFC, outMeta):
         arcpy.MakeFeatureLayer_management(r"in_memory\inFC_tmp", "joinFC_lyr")
         arcpy.AddMessage("Exporting final feature class as " + outFC)
         arcpy.CopyFeatures_management("joinFC_lyr", outFC)
+        removeFields(outFC)
 
         # clean up temporary files
         arcpy.Delete_management(outDir + r"\predicted_cond.dbf")
