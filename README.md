@@ -28,10 +28,12 @@ Download the Conductivity Tools toolbox repository from https://github.com/jesse
 
 ### Automated Processing Steps
 *Pre-process Environmental Parameter*
-1.  Calculate mean value for each parameter per catchment polygon.
-2.  Compile table with summarized environmental parameter values associated with each segment endpoint.
+1.  Remove catchment polygon records where error_code = 1.
+2.  Calculate mean value for each environemtnal parameter per catchment polygon.
+3.  Compile table with summarized environmental parameter values associated with each segment endpoint.
 *Predict Conductivity*
-3.  Predict conductivity values per segment endpoint record using a random forest model.
+4.  Predict conductivity values per segment endpoint record using a random forest model.
+5.  Join predicted conductivity values back to segmented stream network polyline feature class.
 
 #### Environmental parameters used by the Random Forest model to predict conductivity:
 * Atmospheric Ca
