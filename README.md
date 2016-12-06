@@ -11,10 +11,19 @@ The random forest electrical conductivity model was developed using 19 environme
 * 7/25/2016 - Pre-processing tool, v0.3, uploaded.
 * 8/6/2015 - Beta version of the Pre-processing Tool, v0.1, uploaded.
 
+## Requirements
+Python 2.7
+R 3.2.5
+RandomForest (R package)
+Conductivity Tools
+GNAT (optional)
+
+*Please note*: After R is installed, check that the `Rscript` command is available in your Windows command line terminal.  If not, then the R installation folder (i.e. for Windows, this would be similar to "C:\Program Files\R\R-3.2.5\bin") should be added to the system environment PATH variable. Instructions on how to do this can be found [here](http://windowsitpro.com/systems-management/how-can-i-add-new-folder-my-system-path).
+
 ## Installation
 Download the Conductivity Tools toolbox repository from https://github.com/jesselangdon/conductivity.git.  This will include the ArcGIS toolbox, the required Python and R scripts, and the Random Forest model (rf17bCnd9.rdata). The toolbox can then be added to ArcGIS by opening the ArcToolbox window, right-clicking `ArcToolbox and choosing Add Toolbox`.
 
-## Data Input Variables and Requirements
+## Data Input Variables
 **Pre-process Environmental Parameters** 
 * *Catchment Area Feature Class* - This should be a polygon feature class representing catchment areas within the study area.  The catchment areas can be delineated using the [Catchment Tools](http://github.com/SouthForkResearch/catchment-tool).
 * *Output Workspace* - A folder where the output table will be stored.
@@ -29,7 +38,7 @@ Download the Conductivity Tools toolbox repository from https://github.com/jesse
 ### Automated Processing Steps
 *Pre-process Environmental Parameter*
 1.  Remove catchment polygon records where error_code = 1.
-2.  Calculate mean value for each environemtnal parameter per catchment polygon.
+2.  Calculate mean value for each environmental parameter per catchment polygon.
 3.  Compile table with summarized environmental parameter values associated with each segment endpoint.
 *Predict Conductivity*
 4.  Predict conductivity values per segment endpoint record using a random forest model.
