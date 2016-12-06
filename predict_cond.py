@@ -13,6 +13,7 @@ import os.path
 import sys
 import gc
 import metadata
+import inspect
 
 inFC = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e. segments)
 inParams = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
@@ -87,8 +88,7 @@ def main(inFC, inParams, outFC, outMeta):
         mWriter.currentRun.addOutput("Predicted Conductivity Output Feature Class", outFC)
 
         # variables for the subprocess function
-        #pathName = os.path.dirname(os.path.abspath(__file__)) # filepath for the predict_cond.py file
-        scriptPathName = os.path.realpath(__file__)
+        scriptPathName = inspect.stack()[0][1]
         pathName = os.path.dirname(scriptPathName)
         scriptName = 'condRF.R'
         modelName = 'rf17bCnd9.rdata'
