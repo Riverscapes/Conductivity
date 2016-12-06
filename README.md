@@ -12,11 +12,11 @@ The random forest electrical conductivity model was developed using 19 environme
 * 8/6/2015 - Beta version of the Pre-processing Tool, v0.1, uploaded.
 
 ## Requirements
-Python 2.7
-R 3.2.5
-RandomForest (R package)
-Conductivity Tools
-GNAT (optional)
+* Python 2.7
+* R 3.2.5
+* RandomForest (R package)
+* Conductivity Tools
+* GNAT (optional)
 
 *Please note*: After R is installed, check that the `Rscript` command is available in your Windows command line terminal.  If not, then the R installation folder (i.e. for Windows, this would be similar to "C:\Program Files\R\R-3.2.5\bin") should be added to the system environment PATH variable. Instructions on how to do this can be found [here](http://windowsitpro.com/systems-management/how-can-i-add-new-folder-my-system-path).
 
