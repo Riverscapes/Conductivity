@@ -13,6 +13,7 @@ import os.path
 import sys
 import gc
 import metadata.metadata_project as meta
+import riverscapes as rs
 
 arcpy.env.overwriteOutput = True
 
@@ -21,6 +22,8 @@ in_fc = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e
 in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
 in_xml = arcpy.GetParameterAsText(2) # Riverscapes project XML file
 out_fc = arcpy.GetParameterAsText(3) # stream network polyline feature class, with predicted conductivity
+rs_bool = arcpy.GetParameterAsText(4) # Boolean value indicates if a Riverscape project should be exported
+rs_dir = arcpy.GetParameterAsText(5) # Directory where Riverscape project files will be written
 
 # TODO testing
 # in_fc = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\seg1000m"
@@ -50,8 +53,9 @@ def checkLineOID(in_fc):
         else:
             return False
 
+
 def metadata(ecXML):
-    """Builds and writes an XML file according to the Riverscapes Project specifications
+    """ Builds and writes an XML file according to the Riverscapes Project specifications
 
         Args:
             ecXML: Project XML object instance
@@ -66,14 +70,15 @@ def metadata(ecXML):
     ecXML.addMeta("Predict Start Time", timeStart, ecXML.project)
     ecXML.addMeta("Predict Stop Time", timeStop, ecXML.project)
     ecXML.addMeta("Predict Process Time", timeProcess, ecXML.project)
-    # Add project Input tags
+    # Add Project Input tags
     ecXML.addProjectInput("Vector", "Segmented Stream Network", in_fc, ecXML.project, "SEG", ecXML.getUUID(), "True")
-    # Add realization input tags
+    # Add Realization IOnput tags
     ecXML.addECInput(ecXML.project, "Vector", "SEG", "True")
-    # Add analysis output tags
+    # Add Analysis Output tags
     ecXML.addOutput("Vector", "Predicted Electrical Conductivity", out_fc, ecXML.project, "PRED",
                     ecXML.getUUID())
     ecXML.write()
+
 
 def main(in_fc, in_params, in_xml, out_fc):
     """Main processing function for the Predict Conductivity tool.
@@ -132,7 +137,16 @@ def main(in_fc, in_params, in_xml, out_fc):
         # finalize and write XML file
         metadata(projectXML)
 
+        # export data files to Riverscapes project.
+        arcpy.AddMessage("Exporting to Riverscapes project directory...")
+        if rs_bool == "True":
+            rs.exportRSFiles(in_fc, rs_dir, 0) # refer to riverscapes.py for directory lists
+            rs.exportRSFiles(in_xml, rs_dir)
+            rs.exportRSFiles(out_fc, rs_dir, 1, 1)
+        #TODO Finish this!!!
+
         arcpy.AddMessage("Conductivity prediction process complete!")
+
     else:
         arcpy.AddMessage("The LineOID attribute field is missing! Cancelling process...")
         sys.exit(0) # terminate process
