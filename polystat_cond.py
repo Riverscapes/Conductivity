@@ -6,12 +6,15 @@
 #				to the Olson et. al. Random Forest conductivity model (via the predict_cond.py script).
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, Spatial Analyst extension
-# version:		0.3
+# version:		0.4
 
 import time, gc, sys, arcpy
+import os
 from arcpy.sa import *
 from time import strftime
-import metadata.metadata_project as meta
+import metadata.meta_sfr as meta_sfr
+import metadata.meta_rs as meta_rs
+import riverscapes as rs
 
 # start processing time
 startTime = time.time()
@@ -24,20 +27,18 @@ arcpy.CheckOutExtension("Spatial")
 
 # input variables:
 calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-out_dir = arcpy.GetParameterAsText(1) # directory location for parameter summary table output.
+out_tbl = arcpy.GetParameterAsText(1) # directory location for parameter summary table output.
 env_dir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs.
-out_xml = arcpy.GetParameterAsText(3) # directory path and name of Riverscape project XML file.
-riverscape_bool = arcpy.GetParameterAsText(4) # boolean parameter to indicate if Riverscape project outputs are required
-wshd_name = arcpy.GetParameterAsText(5) # name of project watershed. required for Riverscape XML file.
+rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscape project outputs are required
+wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
+rs_dir = arcpy.GetParameterAsText(5) # directory where Riverscape project files will be written
 
-# # TODO Testing
-# calc_ply = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\catch"
-# out_dir = r"C:\JL\Testing\conductivity\Riverscapes\outputs"
+# calc_ply = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\catch_test"
+# out_tbl = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
 # env_dir = r"C:\JL\ISEMP\Data\ec\model\Grids_rsmp"
-# out_xml = r"C:\JL\Testing\conductivity\Riverscapes\outputs\polystat_test.xml"
-# riverscape_bool = "true"
+# rs_bool = "true"
 # wshd_name = "Entiat"
-
+# rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
 
 # constants
 PARAM_LIST= [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names
@@ -59,23 +60,6 @@ PARAM_LIST= [["AtmCa", "ca_avg_250"], # list of model parameter names and associ
             ["PRMH_AVE", "permh_usgs"],
             ["S_Mean", "s_23aug10"],
             ["UCS_Mean", "ucs_19jan10"]]
-
-HUCID_DICT = {"Asotin":"17060103",
-              "Big-Navarro-Garcia (CA)":"18010108",
-              "Entiat":"17020010",
-              "John Day":"17070204",
-              "Lemhi":"17060204",
-              "Lolo Creek":"1706030602",
-              "Methow":"17020008",
-              "Minam":"1706010505",
-              "Region 17":"17",
-              "South Fork Salmon":"17060208",
-              "Tucannon":"17060107",
-              "Umatilla":"17070103",
-              "Upper Grande Ronde":"17060104",
-              "Walla Walla":"17070102",
-              "Wenatchee":"17020011",
-              "Yankee Fork":"1706020105"}
 
 
 def checkLineOID(in_fc):
@@ -126,7 +110,7 @@ def addParamFields(in_fc, inParam):
     return tmpFC
 
 
-def calcParams(in_fc, inParam):
+def calcParams(in_fc, env_dir, inParam):
     """Build attribute table os summarized parameter values for the input
     feature class.
 
@@ -167,47 +151,6 @@ def calcParams(in_fc, inParam):
     gc.disable()
     return "tmpFC"
 
-def getHUCID(wshd_name, hucid_dict):
-    huc_id = hucid_dict[wshd_name]
-    return huc_id
-
-
-def metadata(ecXML):
-    """Builds and writes an XML file according to the Riverscapes Project specifications
-
-        Args:
-            ecXML: Project XML object instance
-    """
-
-    # Finalize metadata
-    timeStart, timeStop, timeProcess = ecXML.finalize()
-
-    ecXML.getOperator()
-    # Add Meta tags
-    huc_id = getHUCID(wshd_name, HUCID_DICT)
-    ecXML.addMeta("HUCID", huc_id, ecXML.project)
-    ecXML.addMeta("Region", "CRB", ecXML.project)
-    ecXML.addMeta("Watershed", wshd_name, ecXML.project)
-    ecXML.addMeta("Operator", ecXML.operator, ecXML.project)
-    ecXML.addMeta("ComputerID", ecXML.computerID, ecXML.project)
-    ecXML.addMeta("Polystat Start Time", timeStart, ecXML.project)
-    ecXML.addMeta("Polystat Stop Time", timeStop, ecXML.project)
-    ecXML.addMeta("Polystat Process Time", timeProcess, ecXML.project)
-    # Add project Input tags
-    ecXML.addProjectInput("Vector", "Catchment Area Polygons", calc_ply, "CATCH", ecXML.getUUID())
-    # Add realization tags
-    realization_name = "{0} {1}".format(wshd_name, "Predicted Conductivity")
-    ecXML.addRealization(realization_name, timeStop, ecXML.getUUID(), productVersion='')
-    # Add parameter tags
-    ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.realizations)
-    # Add realization input tags
-    ecXML.addECInput(ecXML.realizations, "Vector", "CATCH")
-    ecXML.addECInput(ecXML.realizations, "DataTable", "PARAMS")
-    # Add analysis output tags
-    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_dir, ecXML.realizations, "PARAMS",
-                    ecXML.getUUID())
-    ecXML.write()
-
 
 def clear_inmemory():
     """Clears all in_memory datasets."""
@@ -225,20 +168,85 @@ def clear_inmemory():
         arcpy.Delete_management(t)
     return
 
+def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name):
+    """Builds and writes an XML file according to the Riverscapes Project specifications
 
-def main(in_fc, inParam):
+        Args:
+            ecXML: Project XML object instance
+    """
+
+    # Finalize metadata
+    timeStart, timeStop, timeProcess = ecXML.finalize()
+
+    ecXML.getOperator()
+    # Add Meta tags
+    huc_id = rs.getHUCID(wshd_name)
+    ecXML.addMeta("HUCID", huc_id, ecXML.project)
+    ecXML.addMeta("Region", "CRB", ecXML.project)
+    ecXML.addMeta("Watershed", wshd_name, ecXML.project)
+    ecXML.addMeta("Operator", ecXML.operator, ecXML.project)
+    ecXML.addMeta("ComputerID", ecXML.computerID, ecXML.project)
+    ecXML.addMeta("Polystat Start Time", timeStart, ecXML.project)
+    ecXML.addMeta("Polystat Stop Time", timeStop, ecXML.project)
+    ecXML.addMeta("Polystat Process Time", timeProcess, ecXML.project)
+    # Add Riverscapeswproject Input tags
+    ecXML.addProjectInput("Vector", "Catchment Area Polygons", calc_ply, ecXML.project, "CATCH", ecXML.getUUID())
+    # Add Riverscapes realization tags
+    realization_name = "{0} {1}".format(wshd_name, "Predicted Conductivity")
+    ecXML.addRealization(realization_name, timeStop, ecXML.getUUID(), productVersion='')
+    # Add Riverscapes parameter tags
+    ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.realizations)
+    # Add Riverscapes realization input tags
+    ecXML.addECInput(ecXML.realizations, "Vector", "CATCH")
+    ecXML.addECInput(ecXML.realizations, "DataTable", "PARAMS")
+    # Add Riverscapes analysis output tags
+    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "PARAMS",
+                    ecXML.getUUID())
+    ecXML.write()
+
+
+def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', rs_dir=''):
     """Main processing function"""
 
-    # initiate project XML object and start processing timestamp
-    projectXML = meta.ProjectXML("polystat", out_xml, "EC", "Predicted Conductivity")
+    in_dir = os.path.dirname(in_fc)
+    in_fc_name = os.path.basename(in_fc)
+    out_dir = os.path.dirname(out_tbl)
+    out_tbl_name = os.path.basename(out_tbl)
 
+    # initiate generic metadata XML object
+    time_stamp = time.strftime("%Y%m%d%H%M")
+    out_xml = os.path.join(out_dir, "{0}_{1}.{2}".format("meta_polystat", time_stamp, "xml"))
+    mWriter = meta_sfr.MetadataWriter("Pre-process Environmental Parameters", "0.4")
+    mWriter.createRun()
+    mWriter.currentRun.addParameter("Catchment area feature class", in_fc)
+    mWriter.currentRun.addParameter("Output environmental parameter table", out_tbl)
+    mWriter.currentRun.addParameter("Environmental parameter workspace", env_dir)
+    mWriter.currentRun.addParameter("Output metadata XML", out_xml)
+
+    # initiate Riverscapes project XML object
+    if rs_bool == "true":
+        rs.writeRSDirs(rs_dir)
+        rs_xml = "{0}\\{1}".format(rs_dir, "ec_project.xml")
+        projectXML = meta_rs.ProjectXML("polystat", rs_xml, "EC", "Predicted Conductivity")
+
+    # run the parameter summary
     addFieldsFC = addParamFields(in_fc, inParam)
-    calcParamsFC = calcParams(addFieldsFC, inParam)
-    # TODO change this so that output is in the proper Riverscapes directory structure
-    arcpy.TableToTable_conversion(calcParamsFC, out_dir, "ws_cond_param.dbf")
+    calcParamsFC = calcParams(addFieldsFC, env_dir, inParam)
+    arcpy.TableToTable_conversion(calcParamsFC, out_dir, out_tbl_name)
 
-    # finalize and write XML file
-    metadata(projectXML)
+    # finalize and write generic XML file
+    tool_status = "Success"
+    mWriter.finalizeRun(tool_status)
+    mWriter.writeMetadataFile(out_xml)
+
+    # Riverscapes output, including project XML and data files
+    if rs_bool == "true":
+        arcpy.AddMessage("Exporting as a Riverscapes project...")
+        rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0), in_fc_name)
+        rs_tbl_path = os.path.join( rs.getRSdirs(rs_dir, 1, 0), out_tbl_name)
+        rs.copyRSFiles(in_fc, rs_fc_path)
+        rs.copyRSFiles(out_tbl, rs_tbl_path)
+        metadata(projectXML, rs_fc_path, env_dir, rs_tbl_path, rs_bool, wshd_name)
 
     # clean up
     arcpy.Delete_management(addFieldsFC)
@@ -246,7 +254,7 @@ def main(in_fc, inParam):
     clear_inmemory()
 
 if __name__ == "__main__":
-    main(calc_ply, PARAM_LIST)
+    main(calc_ply, out_tbl, env_dir, PARAM_LIST, rs_bool, wshd_name, rs_dir)
 
 
 # end processing time
@@ -256,4 +264,3 @@ arcpy.AddMessage("Processing completed at " + str(printTime))
 curTime = time.time()
 totalTime = (curTime - startTime)/60.0
 arcpy.AddMessage("Total processing time was " + str(round(totalTime,2)) + " minutes.")
-

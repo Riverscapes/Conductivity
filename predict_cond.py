@@ -5,14 +5,16 @@
 #               RF prediction is then joined back to the input stream network.
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, built-in Python modules
-# version:		0.2
+# version:		0.4
 
 import arcpy
+import time
 import subprocess
 import os.path
 import sys
 import gc
-import metadata.metadata_project as meta
+import metadata.meta_sfr as meta_sfr
+import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
 arcpy.env.overwriteOutput = True
@@ -20,16 +22,16 @@ arcpy.env.overwriteOutput = True
 # input variables
 in_fc = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e. segments)
 in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
-in_xml = arcpy.GetParameterAsText(2) # Riverscapes project XML file
-out_fc = arcpy.GetParameterAsText(3) # stream network polyline feature class, with predicted conductivity
-rs_bool = arcpy.GetParameterAsText(4) # Boolean value indicates if a Riverscape project should be exported
-rs_dir = arcpy.GetParameterAsText(5) # Directory where Riverscape project files will be written
+out_fc = arcpy.GetParameterAsText(2) # stream network polyline feature class, with predicted conductivity
+rs_bool = arcpy.GetParameterAsText(3) # Boolean value indicates if a Riverscape project should be exported
+rs_dir = arcpy.GetParameterAsText(4) # Directory where Riverscape project files will be written
 
-# TODO testing
-# in_fc = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\seg1000m"
-# in_params = r"C:\JL\Testing\conductivity\Riverscapes\outputs\ws_cond_param.dbf"
-# in_xml = r"C:\JL\Testing\conductivity\Riverscapes\outputs\polystat_test.xml"
-# out_fc = r"C:\JL\Testing\conductivity\Riverscapes\outputs\pred_cond_test.shp"
+# TEST
+# in_fc = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\seg1000m_test"
+# in_params = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
+# out_fc = r"C:\JL\Testing\conductivity\Riverscapes\outputs\pred_cond.shp"
+# rs_bool = "true"
+# rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
 
 # constants
 MODEL_RF = "rf17bCnd9" # name of random forest model (source: Carl Saunders, ELR)
@@ -54,7 +56,24 @@ def checkLineOID(in_fc):
             return False
 
 
-def metadata(ecXML):
+def clear_inmemory():
+    """Clears all in_memory datasets."""
+    arcpy.env.workspace = r"IN_MEMORY"
+    arcpy.AddMessage("Deleting in_memory data...")
+
+    list_fc = arcpy.ListFeatureClasses()
+    list_tbl = arcpy.ListTables()
+
+    # for each FeatClass in the list of fcs's, delete it.
+    for f in list_fc:
+        arcpy.Delete_management(f)
+    # for each TableClass in the list of tab's, delete it.
+    for t in list_tbl:
+        arcpy.Delete_management(t)
+    return
+
+
+def metadata(ecXML, in_fc, out_fc):
     """ Builds and writes an XML file according to the Riverscapes Project specifications
 
         Args:
@@ -80,7 +99,7 @@ def metadata(ecXML):
     ecXML.write()
 
 
-def main(in_fc, in_params, in_xml, out_fc):
+def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
     """Main processing function for the Predict Conductivity tool.
 
     Args:
@@ -91,13 +110,29 @@ def main(in_fc, in_params, in_xml, out_fc):
         as new attribute fields.
     """
 
+    in_fc_name = os.path.basename(in_fc)
+    out_dir = os.path.dirname(out_fc)
+    out_fc_name = os.path.basename(out_fc)
+
+    # initiate generic metadata XML object
+    time_stamp = time.strftime("%Y%m%d%H%M")
+    out_xml = os.path.join(out_dir, "{0}_{1}.{2}".format("meta_predict", time_stamp, "xml"))
+    mWriter = meta_sfr.MetadataWriter("Predict Conductivity", "0.4")
+    mWriter.createRun()
+    mWriter.currentRun.addParameter("Stream network polyline feature class", in_fc)
+    mWriter.currentRun.addParameter("Environmental parameter table", in_params)
+    mWriter.currentRun.addParameter("Predicted conductivity feature class", out_fc)
+    mWriter.currentRun.addParameter("Output metadata XML", out_xml)
+
     if checkLineOID(in_fc) == True:
         arcpy.AddMessage("Predicting conductivity using Random Forest model in R...")
         gc.enable() # turn on automatic garbage collection
         out_dir = os.path.dirname(out_fc) # get output directory path
 
-        # initiate project XML object and start processing timestamp
-        projectXML = meta.ProjectXML("predict", in_xml)
+        # initiate Riverscapes project XML object and start processing timestamp
+        if rs_bool == "true":
+            rs_xml = "{0}\\{1}".format(rs_dir, "ec_project.xml")
+            projectXML = meta_rs.ProjectXML("predict", rs_xml)
 
         # variables for the subprocess function
         scriptPathName = os.path.realpath(__file__)
@@ -129,28 +164,31 @@ def main(in_fc, in_params, in_xml, out_fc):
         arcpy.AddMessage("Exporting final feature class as " + out_fc)
         arcpy.CopyFeatures_management("join_fc_lyr", out_fc)
 
-        # clean up temporary files
-        arcpy.Delete_management(out_dir + r"\predicted_cond.dbf")
-        arcpy.Delete_management(out_dir + r"\predicted_cond.csv")
-        gc.disable()
-
-        # finalize and write XML file
-        metadata(projectXML)
+        # finalize and write generic XML file
+        tool_status = "Success"
+        mWriter.finalizeRun(tool_status)
+        mWriter.writeMetadataFile(out_xml)
 
         # export data files to Riverscapes project.
-        arcpy.AddMessage("Exporting to Riverscapes project directory...")
-        if rs_bool == "True":
-            rs.exportRSFiles(in_fc, rs_dir, 0) # refer to riverscapes.py for directory lists
-            rs.exportRSFiles(in_xml, rs_dir)
-            rs.exportRSFiles(out_fc, rs_dir, 1, 1)
-        #TODO Finish this!!!
+        if rs_bool == "true":
+            arcpy.AddMessage("Exporting to Riverscapes project...")
+            rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0), in_fc_name)
+            rs_out_path = os.path.join(rs.getRSdirs(rs_dir, 1, 1), out_fc_name)
+            rs.copyRSFiles(in_fc, rs_fc_path)
+            rs.copyRSFiles(out_fc, rs_out_path)
+            metadata(projectXML, rs_fc_path, rs_out_path)
+
+        # clean up temporary files
+        clear_inmemory()
+        arcpy.Delete_management(out_dir + r"\predicted_cond.dbf")
+        arcpy.Delete_management(out_dir + r"\predicted_cond.csv")
 
         arcpy.AddMessage("Conductivity prediction process complete!")
 
     else:
-        arcpy.AddMessage("The LineOID attribute field is missing! Cancelling process...")
-        sys.exit(0) # terminate process
+        arcpy.AddError("The LineOID attribute field is missing! Cancelling process...")
+        sys.exit(0)
     return
 
 if __name__ == "__main__":
-    main(in_fc, in_params, in_xml, out_fc)
+    main(in_fc, in_params, out_fc, rs_bool, rs_dir)
