@@ -20,18 +20,18 @@ import riverscapes as rs
 arcpy.env.overwriteOutput = True
 
 # input variables
-in_fc = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e. segments)
-in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
-out_fc = arcpy.GetParameterAsText(2) # stream network polyline feature class, with predicted conductivity
-rs_bool = arcpy.GetParameterAsText(3) # Boolean value indicates if a Riverscape project should be exported
-rs_dir = arcpy.GetParameterAsText(4) # Directory where Riverscape project files will be written
+# in_fc = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e. segments)
+# in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
+# out_fc = arcpy.GetParameterAsText(2) # stream network polyline feature class, with predicted conductivity
+# rs_bool = arcpy.GetParameterAsText(3) # Boolean value indicates if a Riverscape project should be exported
+# rs_dir = arcpy.GetParameterAsText(4) # Directory where Riverscape project files will be written
 
 # TEST
-# in_fc = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\seg1000m_test"
-# in_params = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
-# out_fc = r"C:\JL\Testing\conductivity\Riverscapes\outputs\pred_cond.shp"
-# rs_bool = "true"
-# rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
+in_fc = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\seg1000m_test"
+in_params = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
+out_fc = r"C:\JL\Testing\conductivity\Riverscapes\outputs\pred_cond.shp"
+rs_bool = "true"
+rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
 
 # constants
 MODEL_RF = "rf17bCnd9" # name of random forest model (source: Carl Saunders, ELR)
@@ -81,20 +81,19 @@ def metadata(ecXML, in_fc, out_fc):
     """
 
     # Finalize metadata
-    timeStart, timeStop, timeProcess = ecXML.finalize()
+    timeStart, timeStop = ecXML.finalize()
 
     ecXML.getOperator()
     # Add Meta tags
     ecXML.addMeta("Model", MODEL_RF, ecXML.project)
     ecXML.addMeta("Predict Start Time", timeStart, ecXML.project)
     ecXML.addMeta("Predict Stop Time", timeStop, ecXML.project)
-    ecXML.addMeta("Predict Process Time", timeProcess, ecXML.project)
     # Add Project Input tags
     ecXML.addProjectInput("Vector", "Segmented Stream Network", in_fc, ecXML.project, "SEG", ecXML.getUUID(), "True")
     # Add Realization IOnput tags
-    ecXML.addECInput(ecXML.project, "Vector", "SEG", "True")
+    ecXML.addRealizationInput(ecXML.realizations, "Vector", "EC", "SEG", "True")
     # Add Analysis Output tags
-    ecXML.addOutput("Vector", "Predicted Electrical Conductivity", out_fc, ecXML.project, "PRED",
+    ecXML.addOutput("Vector", "Predicted Electrical Conductivity", out_fc, ecXML.project, "EC", "PRED",
                     ecXML.getUUID())
     ecXML.write()
 
@@ -172,8 +171,9 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
         # export data files to Riverscapes project.
         if rs_bool == "true":
             arcpy.AddMessage("Exporting to Riverscapes project...")
-            rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0), in_fc_name)
-            rs_out_path = os.path.join(rs.getRSdirs(rs_dir, 1, 1), out_fc_name)
+            real_id = projectXML.realizationsList.pop()
+            rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, real_id, 0), in_fc_name)
+            rs_out_path = os.path.join(rs.getRSdirs(rs_dir, real_id, 1, 1), out_fc_name)
             rs.copyRSFiles(in_fc, rs_fc_path)
             rs.copyRSFiles(out_fc, rs_out_path)
             metadata(projectXML, rs_fc_path, rs_out_path)

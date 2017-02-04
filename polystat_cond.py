@@ -8,8 +8,9 @@
 # dependencies: ESRI arcpy module, Spatial Analyst extension
 # version:		0.4
 
-import time, gc, sys, arcpy
+import gc, sys, arcpy
 import os
+import time
 from arcpy.sa import *
 from time import strftime
 import metadata.meta_sfr as meta_sfr
@@ -26,19 +27,23 @@ arcpy.env.overwriteOutput = True
 arcpy.CheckOutExtension("Spatial")
 
 # input variables:
-calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-out_tbl = arcpy.GetParameterAsText(1) # directory location for parameter summary table output.
-env_dir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs.
-rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscape project outputs are required
-wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
-rs_dir = arcpy.GetParameterAsText(5) # directory where Riverscape project files will be written
+# calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
+# out_tbl = arcpy.GetParameterAsText(1) # directory location for parameter summary table output.
+# env_dir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs.
+# rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscapes project outputs are required
+# wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
+# rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
+# rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes realization name
+# rs_dir = arcpy.GetParameterAsText(7) # directory where Riverscapes project files will be written
 
-# calc_ply = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\catch_test"
-# out_tbl = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
-# env_dir = r"C:\JL\ISEMP\Data\ec\model\Grids_rsmp"
-# rs_bool = "true"
-# wshd_name = "Entiat"
-# rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
+calc_ply = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\catch_test"
+out_tbl = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
+env_dir = r"C:\JL\ISEMP\Data\ec\model\Grids_rsmp"
+rs_bool = "true"
+wshd_name = "Entiat"
+rs_proj_name = "Predicted Conductivity"
+rs_real_name = "Realization Run 01"
+rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
 
 # constants
 PARAM_LIST= [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names
@@ -168,7 +173,8 @@ def clear_inmemory():
         arcpy.Delete_management(t)
     return
 
-def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name):
+
+def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, real_id):
     """Builds and writes an XML file according to the Riverscapes Project specifications
 
         Args:
@@ -176,7 +182,7 @@ def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name):
     """
 
     # Finalize metadata
-    timeStart, timeStop, timeProcess = ecXML.finalize()
+    timeStart, timeStop = ecXML.finalize()
 
     ecXML.getOperator()
     # Add Meta tags
@@ -188,27 +194,24 @@ def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name):
     ecXML.addMeta("ComputerID", ecXML.computerID, ecXML.project)
     ecXML.addMeta("Polystat Start Time", timeStart, ecXML.project)
     ecXML.addMeta("Polystat Stop Time", timeStop, ecXML.project)
-    ecXML.addMeta("Polystat Process Time", timeProcess, ecXML.project)
     # Add Riverscapeswproject Input tags
     ecXML.addProjectInput("Vector", "Catchment Area Polygons", calc_ply, ecXML.project, "CATCH", ecXML.getUUID())
     # Add Riverscapes realization tags
-    realization_name = "{0} {1}".format(wshd_name, "Predicted Conductivity")
-    ecXML.addRealization(realization_name, timeStop, ecXML.getUUID(), productVersion='')
+    ecXML.addRealization(real_name, real_id, timeStop, '0.1', ecXML.getUUID())
     # Add Riverscapes parameter tags
-    ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.realizations)
+    ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.project, "EC")
     # Add Riverscapes realization input tags
-    ecXML.addECInput(ecXML.realizations, "Vector", "CATCH")
-    ecXML.addECInput(ecXML.realizations, "DataTable", "PARAMS")
+    ecXML.addRealizationInput(ecXML.project, "Vector", "EC", "CATCH")
+    ecXML.addRealizationInput(ecXML.project, "DataTable", "EC", "PARAMS")
     # Add Riverscapes analysis output tags
-    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "PARAMS",
+    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "EC", "PARAMS",
                     ecXML.getUUID())
     ecXML.write()
 
 
-def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', rs_dir=''):
+def main(in_fc, out_tbl, env_dir, inParam, rs_bool, proj_name='', wshd_name='', real_name='', rs_dir=''):
     """Main processing function"""
 
-    in_dir = os.path.dirname(in_fc)
     in_fc_name = os.path.basename(in_fc)
     out_dir = os.path.dirname(out_tbl)
     out_tbl_name = os.path.basename(out_tbl)
@@ -225,11 +228,11 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', rs_dir=''):
 
     # initiate Riverscapes project XML object
     if rs_bool == "true":
-        rs.writeRSDirs(rs_dir)
+        rs.writeRSRoot(rs_dir)
         rs_xml = "{0}\\{1}".format(rs_dir, "ec_project.xml")
-        projectXML = meta_rs.ProjectXML("polystat", rs_xml, "EC", "Predicted Conductivity")
+        projectXML = meta_rs.ProjectXML("polystat", rs_xml, "EC", proj_name)
 
-    # run the parameter summary
+    # run the environmental parameter summary
     addFieldsFC = addParamFields(in_fc, inParam)
     calcParamsFC = calcParams(addFieldsFC, env_dir, inParam)
     arcpy.TableToTable_conversion(calcParamsFC, out_dir, out_tbl_name)
@@ -242,11 +245,23 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', rs_dir=''):
     # Riverscapes output, including project XML and data files
     if rs_bool == "true":
         arcpy.AddMessage("Exporting as a Riverscapes project...")
+        # generate unique realization ID
+        real_id = rs.getRealID()
+        # get filepaths for where input/output files will be copied
         rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0), in_fc_name)
-        rs_tbl_path = os.path.join( rs.getRSdirs(rs_dir, 1, 0), out_tbl_name)
+        rs_tbl_path = os.path.join( rs.getRSdirs(rs_dir, 1, 0, real_id), out_tbl_name)
+        # finalize projectXML object and write the XML file
+        metadata(projectXML,
+                 rs_fc_path,
+                 env_dir,
+                 rs_tbl_path,
+                 rs_bool,
+                 wshd_name,
+                 real_name,
+                 real_id)
+        rs.writeRSDirs(rs_dir, real_id)
         rs.copyRSFiles(in_fc, rs_fc_path)
         rs.copyRSFiles(out_tbl, rs_tbl_path)
-        metadata(projectXML, rs_fc_path, env_dir, rs_tbl_path, rs_bool, wshd_name)
 
     # clean up
     arcpy.Delete_management(addFieldsFC)
@@ -254,7 +269,7 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', rs_dir=''):
     clear_inmemory()
 
 if __name__ == "__main__":
-    main(calc_ply, out_tbl, env_dir, PARAM_LIST, rs_bool, wshd_name, rs_dir)
+    main(calc_ply, out_tbl, env_dir, PARAM_LIST, rs_bool, rs_proj_name, wshd_name, rs_real_name, rs_dir)
 
 
 # end processing time

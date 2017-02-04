@@ -21,7 +21,7 @@ class ProjectXML:
 
     def __init__(self, tool, filepath, projType='', name=''):
         # Get the start timestamp
-        self.timestampStart = datetime.datetime.now()
+        self.timestampStart = datetime.datetime.now().isoformat()
 
         self.logFilePath = filepath
         if tool == "polystat":
@@ -42,7 +42,8 @@ class ProjectXML:
             self.projectType = ET.SubElement(self.project, "ProjectType")
             self.projectType.text = projType
 
-            # Add some containers we will fill out later
+            # Add some elements we will fill out later
+            self.MetaData = ET.SubElement(self.project, "MetaData")
             self.Inputs = ET.SubElement(self.project, "Inputs")
             self.realizations = ET.SubElement(self.project, "Realizations")
 
@@ -50,13 +51,18 @@ class ProjectXML:
             if os.path.isfile(self.logFilePath):
                 self.projectTree = ET.parse(filepath)
                 self.project = self.projectTree.getroot()
+                for node in self.project.getiterator():
+                    if node.tag == 'Realizations':
+                        self.realizations = node
 
-        self.ECrealizations = []
+        self.realizationsList = []
+
 
     def getOperator(self):
         """gets operator name and computer ID"""
         self.operator = getuser()
         self.computerID = gethostname()
+
 
     def addMeta(self, name, value, parentNode):
         """adds metadata tags to the project xml document"""
@@ -67,6 +73,7 @@ class ProjectXML:
         node = ET.SubElement(metaNode, "Meta")
         node.set("name", name)
         node.text = str(value)
+
 
     def addProjectInput(self, itype, name, path, parentNode, iid='', guid='', append=''):
         """Adds a project input tag"""
@@ -84,38 +91,45 @@ class ProjectXML:
         pathNode = ET.SubElement(typeNode, "Path")
         pathNode.text = str(path)
 
-    def addRealization(self, name, dateCreated='', guid='', productVersion=''):
+
+    def addRealization(self, name, id, dateCreated, productVersion, guid=''):
         """adds an EC realization tag to the project xml document"""
         node = ET.SubElement(self.realizations, "EC")
+        if id is not '':
+            node.set('id', id)
         if dateCreated is not '':
             node.set('dateCreated', dateCreated)
-        if guid is not '':
-            node.set('guid', guid)
         if productVersion is not '':
             node.set('productVersion', productVersion)
+        if guid is not '':
+            node.set('guid', guid)
         nameNode = ET.SubElement(node, "Name")
         nameNode.text = str(name)
-        self.ECrealizations.append(node)
+        self.realizationsList.append(id)
 
-    def addParameter(self, name, value, parentNode):
+
+    def addParameter(self, name, value, parentNode, realizationID):
         """adds parameter tags to the project xml document"""
-        paramNode = parentNode.find("Parameters")
+        realizationNode = parentNode.find("Realizations")
+        subRealizationNode = realizationNode.find(realizationID)
+        paramNode = subRealizationNode.find("Parameters")
         if paramNode is None:
-            paramNode = ET.SubElement(parentNode, "Parameters")
+            paramNode = ET.SubElement(subRealizationNode, "Parameters")
 
         node = ET.SubElement(paramNode, "Param")
         node.set("name", name)
         node.text = str(value)
 
-    def addECInput(self, parentNode, type, ref='', append=''):
-        """adds realization input tags"""
-        if parentNode == self.project:
+
+    def addRealizationInput(self, parentNode, type, realizationID, ref='', append=''):
+        if parentNode == self.realizations:
+            subRealizationNode = parentNode.find(realizationID)
+        elif parentNode == self.project:
             realizationNode = parentNode.find("Realizations")
-            inputsNode = realizationNode.find("Inputs")
-        elif parentNode == self.realizations:
-            inputsNode = parentNode.find("Inputs")
-            if inputsNode is None:
-                inputsNode = ET.SubElement(parentNode, "Inputs")
+            subRealizationNode = realizationNode.find(realizationID)
+        inputsNode = subRealizationNode.find("Inputs")
+        if inputsNode is None:
+            inputsNode = ET.SubElement(subRealizationNode, "Inputs")
         if append == 'True' and type == 'Vector':
             vectorNode = ET.SubElement(inputsNode, "Vector")
             if ref is not '':
@@ -137,19 +151,24 @@ class ProjectXML:
             if ref is not '':
                 tableNode.set('ref', ref)
 
-    def addOutput(self, otype, name, path, parentNode, oid='', guid=''):
+
+    def addOutput(self, otype, name, path, parentNode, realizationID, oid='', guid=''):
         """adds an output tag to an analysis tag in the project xml document"""
         if parentNode == self.project:
             realizationNode = parentNode.find("Realizations")
-            analysisNode = realizationNode.find("Analysis")
-            outputsNode = ET.SubElement(analysisNode, "Outputs")
+            subRealizationNode = realizationNode.find(realizationID)
+            analysisNode = subRealizationNode.find("Analysis")
+            outputsNode = analysisNode.find("Outputs")
         elif parentNode == self.realizations:
-            analysisNode = parentNode.find("Analysis")
+            subRealizationNode = parentNode.find(realizationID)
+            analysisNode = subRealizationNode.find("Analysis")
             if analysisNode is None:
-                analysisNode = ET.SubElement(parentNode, "Analysis")
+                analysisNode = ET.SubElement(subRealizationNode, "Analysis")
                 outputsNode = analysisNode.find("Outputs")
                 if outputsNode is None:
                     outputsNode = ET.SubElement(analysisNode, "Outputs")
+            else:
+                outputsNode = analysisNode.find("Outputs")
         typeNode = ET.SubElement(outputsNode, otype)
         if oid is not '':
             typeNode.set('id', oid)
@@ -160,11 +179,16 @@ class ProjectXML:
         pathNode = ET.SubElement(typeNode, "Path")
         pathNode.text = str(path)
 
+
+    def getUUID(self):
+        return str(uuid.uuid4()).upper()
+
+
     def finalize(self):
         """Sets the stop timestamp and total processing time"""
-        self.timestampStop = datetime.datetime.now()
-        self.timeProcess = self.timestampStop - self.timestampStart
-        return str(self.timestampStart), str(self.timestampStop), str(self.timeProcess)
+        self.timestampStop = datetime.datetime.now().isoformat()
+        return str(self.timestampStart), str(self.timestampStop)
+
 
     def write(self):
         """
@@ -177,6 +201,3 @@ class ProjectXML:
         f = open(self.logFilePath, "wb")
         f.write(pretty)
         f.close()
-
-    def getUUID(self):
-        return str(uuid.uuid4()).upper()

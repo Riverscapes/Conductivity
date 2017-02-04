@@ -1,6 +1,9 @@
 import os
 import shutil
 import arcpy
+from random import choice
+from string import digits
+from string import ascii_uppercase
 
 # constants
 RS_SUBDIRS = ["Inputs", "Realizations"] # directories in the Riverscape Project root
@@ -24,27 +27,22 @@ HUCID_DICT = {"Asotin":"17060103",
               "Yankee Fork":"1706020105"}
 
 
-def writeRSDirs(rs_root):
-    """Writes optional Riverscape project file folders"""
+def writeRSRoot(rs_root):
     if os.path.exists(rs_root):
         shutil.rmtree(rs_root)
+        os.mkdir(rs_root)
+        os.chmod(rs_root, 0o777)
     else:
         os.mkdir(rs_root)
         os.chmod(rs_root, 0o777)
+
+
+def writeRSDirs(rs_root, real_id):
+    """Writes optional Riverscape project file folders"""
     for subdir in RS_SUBDIRS:
         os.makedirs(os.path.join(rs_root, subdir))
     for outdir in RS_OUTDIRS:
-        os.makedirs(os.path.join(rs_root, RS_SUBDIRS[1], outdir))
-
-
-def exportRSFiles(data_file, rs_root, subdir_index = '', outdir_index = ''):
-    """Writes data files to Riverscapes project folders"""
-    if subdir_index != '' and outdir_index != '': # i.e. the data_file is a realization/output
-        shutil.copy(data_file, "{0}\\{1}\\{2}".format(rs_root, RS_SUBDIRS[subdir_index], RS_OUTDIRS[outdir_index]))
-    elif subdir_index != '' and outdir_index == '': #i.e. the data_file is an input
-        shutil.copy(data_file, "{0}\\{1}".format(rs_root, RS_SUBDIRS[subdir_index]))
-    else: # write to Riverscapes root directory
-        shutil.copy(data_file, "{0}".format(rs_root))
+        os.makedirs(os.path.join(rs_root, real_id, RS_SUBDIRS[1], outdir))
 
 
 def copyRSFiles(from_file, out_file):
@@ -57,20 +55,16 @@ def copyRSFiles(from_file, out_file):
         arcpy.CopyFeatures_management("from_file_lyr", out_file)
 
 
-def getRSdirs(root, subdir_index='', outdir_index=''):
+def getRSdirs(root, subdir_index='', outdir_index='', real_id=''):
     if subdir_index != '' and outdir_index != '':
-        return os.path.join(root, RS_SUBDIRS[subdir_index], RS_OUTDIRS[outdir_index])
+        return os.path.join(root, RS_SUBDIRS[subdir_index], real_id, RS_OUTDIRS[outdir_index]) # Realizations
     if subdir_index != '' and outdir_index == '':
-        return os.path.join(root, RS_SUBDIRS[subdir_index])
-
-
-def filepathRS(data_file, root, subdir_index = '', outdir_index = ''):
-    if subdir_index != '' and outdir_index != '':
-        return os.path.join(root, RS_SUBDIRS[subdir_index], RS_OUTDIRS[outdir_index], data_file)
-    elif subdir_index != '' and outdir_index == '':
-        return os.path.join(root, RS_SUBDIRS[subdir_index], data_file)
+        return os.path.join(root, RS_SUBDIRS[subdir_index]) # Inputs
 
 
 def getHUCID(wshd_name):
     huc_id = HUCID_DICT[wshd_name]
     return huc_id
+
+def getRealID():
+    return "real" + ''.join(choice(ascii_uppercase + digits) for i in range(8))
