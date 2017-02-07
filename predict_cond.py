@@ -32,6 +32,7 @@ in_params = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
 out_fc = r"C:\JL\Testing\conductivity\Riverscapes\outputs\pred_cond.shp"
 rs_bool = "true"
 rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
+rs_real_name = "Realization Run 01"
 
 # constants
 MODEL_RF = "rf17bCnd9" # name of random forest model (source: Carl Saunders, ELR)
@@ -73,7 +74,7 @@ def clear_inmemory():
     return
 
 
-def metadata(ecXML, in_fc, out_fc):
+def metadata(ecXML, in_fc, out_fc, real_id):
     """ Builds and writes an XML file according to the Riverscapes Project specifications
 
         Args:
@@ -91,10 +92,11 @@ def metadata(ecXML, in_fc, out_fc):
     # Add Project Input tags
     ecXML.addProjectInput("Vector", "Segmented Stream Network", in_fc, ecXML.project, "SEG", ecXML.getUUID(), "True")
     # Add Realization IOnput tags
-    ecXML.addRealizationInput(ecXML.realizations, "Vector", "EC", "SEG", "True")
+    ecXML.addRealizationInput(ecXML.realizations, "Vector", "EC", real_id, "SEG", "True")
     # Add Analysis Output tags
-    ecXML.addOutput("Vector", "Predicted Electrical Conductivity", out_fc, ecXML.project, "EC", "PRED",
+    ecXML.addOutput("Vector", "Predicted Electrical Conductivity", out_fc, ecXML.project, "EC", real_id, "PRED",
                     ecXML.getUUID())
+    real_name = ecXML.getRealnames(ecXML.project)
     ecXML.write()
 
 
@@ -171,12 +173,11 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
         # export data files to Riverscapes project.
         if rs_bool == "true":
             arcpy.AddMessage("Exporting to Riverscapes project...")
-            real_id = projectXML.realizationsList.pop()
-            rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, real_id, 0), in_fc_name)
-            rs_out_path = os.path.join(rs.getRSdirs(rs_dir, real_id, 1, 1), out_fc_name)
+            rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0, real_id), in_fc_name)
+            rs_out_path = os.path.join(rs.getRSdirs(rs_dir, 1, 1, real_id), out_fc_name)
             rs.copyRSFiles(in_fc, rs_fc_path)
             rs.copyRSFiles(out_fc, rs_out_path)
-            metadata(projectXML, rs_fc_path, rs_out_path)
+            metadata(projectXML, rs_fc_path, rs_out_path, real_id)
 
         # clean up temporary files
         clear_inmemory()

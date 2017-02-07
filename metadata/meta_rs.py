@@ -24,6 +24,8 @@ class ProjectXML:
         self.timestampStart = datetime.datetime.now().isoformat()
 
         self.logFilePath = filepath
+        #self.realIDlist = []
+        self.realIDdict = {}
         if tool == "polystat":
             if os.path.isfile(self.logFilePath):
                 os.remove(self.logFilePath)
@@ -54,8 +56,7 @@ class ProjectXML:
                 for node in self.project.getiterator():
                     if node.tag == 'Realizations':
                         self.realizations = node
-
-        self.realizationsList = []
+            self.getRealIDs(self.realizations)
 
 
     def getOperator(self):
@@ -105,7 +106,6 @@ class ProjectXML:
             node.set('guid', guid)
         nameNode = ET.SubElement(node, "Name")
         nameNode.text = str(name)
-        self.realizationsList.append(id)
 
 
     def addParameter(self, name, value, parentNode, realizationID):
@@ -121,13 +121,13 @@ class ProjectXML:
         node.text = str(value)
 
 
-    def addRealizationInput(self, parentNode, type, realizationID, ref='', append=''):
-        if parentNode == self.realizations:
-            subRealizationNode = parentNode.find(realizationID)
-        elif parentNode == self.project:
-            realizationNode = parentNode.find("Realizations")
-            subRealizationNode = realizationNode.find(realizationID)
-        inputsNode = subRealizationNode.find("Inputs")
+    def addRealizationInput(self, parentNode, type, subrealization, realizationID, ref='', append=''):
+        realizationNode = parentNode.find("Realizations")
+        subRealizationNode = realizationNode.find(subrealization)
+        for name, value in subRealizationNode.attrib.items():
+            if value == realizationID:
+                realIDNode = subRealizationNode
+        inputsNode = realIDNode.find("Inputs")
         if inputsNode is None:
             inputsNode = ET.SubElement(subRealizationNode, "Inputs")
         if append == 'True' and type == 'Vector':
@@ -152,16 +152,22 @@ class ProjectXML:
                 tableNode.set('ref', ref)
 
 
-    def addOutput(self, otype, name, path, parentNode, realizationID, oid='', guid=''):
+    def addOutput(self, otype, name, path, parentNode, subrealization, realizationID, oid='', guid=''):
         """adds an output tag to an analysis tag in the project xml document"""
         if parentNode == self.project:
             realizationNode = parentNode.find("Realizations")
-            subRealizationNode = realizationNode.find(realizationID)
-            analysisNode = subRealizationNode.find("Analysis")
+            subRealizationNode = realizationNode.find(oid)
+            for name, value in subRealizationNode.attrib.items():
+                if value == realizationID:
+                    realIDNode = subRealizationNode
+            analysisNode = realIDNode.find("Analysis")
             outputsNode = analysisNode.find("Outputs")
         elif parentNode == self.realizations:
-            subRealizationNode = parentNode.find(realizationID)
-            analysisNode = subRealizationNode.find("Analysis")
+            subRealizationNode = parentNode.find(subrealization)
+            for name, value in subRealizationNode.attrib.items():
+                if value == realizationID:
+                    realIDNode = subRealizationNode
+            analysisNode = realIDNode.find("Analysis")
             if analysisNode is None:
                 analysisNode = ET.SubElement(subRealizationNode, "Analysis")
                 outputsNode = analysisNode.find("Outputs")
@@ -182,6 +188,15 @@ class ProjectXML:
 
     def getUUID(self):
         return str(uuid.uuid4()).upper()
+
+
+    def getRealIDs(self, parentNode):
+        for node in parentNode:
+            nameNode = node.find('Name')
+            for key, value in node.attrib.items():
+                if key == 'id':
+                    self.realIDdict[value] = nameNode.text.strip()
+        return
 
 
     def finalize(self):

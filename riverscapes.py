@@ -42,7 +42,7 @@ def writeRSDirs(rs_root, real_id):
     for subdir in RS_SUBDIRS:
         os.makedirs(os.path.join(rs_root, subdir))
     for outdir in RS_OUTDIRS:
-        os.makedirs(os.path.join(rs_root, real_id, RS_SUBDIRS[1], outdir))
+        os.makedirs(os.path.join(rs_root, RS_SUBDIRS[1], real_id, outdir))
 
 
 def copyRSFiles(from_file, out_file):

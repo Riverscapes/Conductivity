@@ -201,10 +201,10 @@ def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, r
     # Add Riverscapes parameter tags
     ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.project, "EC")
     # Add Riverscapes realization input tags
-    ecXML.addRealizationInput(ecXML.project, "Vector", "EC", "CATCH")
-    ecXML.addRealizationInput(ecXML.project, "DataTable", "EC", "PARAMS")
+    ecXML.addRealizationInput(ecXML.project, "Vector", "EC", real_id, "CATCH")
+    ecXML.addRealizationInput(ecXML.project, "DataTable", "EC", real_id, "PARAMS")
     # Add Riverscapes analysis output tags
-    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "EC", "PARAMS",
+    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "EC", real_id, "PARAMS",
                     ecXML.getUUID())
     ecXML.write()
 
