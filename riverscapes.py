@@ -66,5 +66,6 @@ def getHUCID(wshd_name):
     huc_id = HUCID_DICT[wshd_name]
     return huc_id
 
-def getRealID():
-    return "real" + ''.join(choice(ascii_uppercase + digits) for i in range(8))
+def getRealID(timestamp):
+    return "{0}{1}".format("real", timestamp)
+    #return "real" + ''.join(choice(ascii_uppercase + digits) for i in range(8))

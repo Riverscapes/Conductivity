@@ -20,19 +20,12 @@ import riverscapes as rs
 arcpy.env.overwriteOutput = True
 
 # input variables
-# in_fc = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e. segments)
-# in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
-# out_fc = arcpy.GetParameterAsText(2) # stream network polyline feature class, with predicted conductivity
-# rs_bool = arcpy.GetParameterAsText(3) # Boolean value indicates if a Riverscape project should be exported
-# rs_dir = arcpy.GetParameterAsText(4) # Directory where Riverscape project files will be written
-
-# TEST
-in_fc = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\seg1000m_test"
-in_params = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
-out_fc = r"C:\JL\Testing\conductivity\Riverscapes\outputs\pred_cond.shp"
-rs_bool = "true"
-rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
-rs_real_name = "Realization Run 01"
+in_fc = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e. segments)
+in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
+out_fc = arcpy.GetParameterAsText(2) # stream network polyline feature class, with predicted conductivity
+rs_bool = arcpy.GetParameterAsText(3) # Boolean value indicates if a Riverscapes project should be exported
+rs_dir = arcpy.GetParameterAsText(4) # Directory where Riverscapes project files will be written
+rs_real_name = arcpy.GetParameterAsText(5) # Riverscapes project realization name.
 
 # constants
 MODEL_RF = "rf17bCnd9" # name of random forest model (source: Carl Saunders, ELR)
@@ -92,11 +85,10 @@ def metadata(ecXML, in_fc, out_fc, real_id):
     # Add Project Input tags
     ecXML.addProjectInput("Vector", "Segmented Stream Network", in_fc, ecXML.project, "SEG", ecXML.getUUID(), "True")
     # Add Realization IOnput tags
-    ecXML.addRealizationInput(ecXML.realizations, "Vector", "EC", real_id, "SEG", "True")
+    ecXML.addRealizationInput(ecXML.project, "Vector", "EC", real_id, "SEG", "True")
     # Add Analysis Output tags
     ecXML.addOutput("Vector", "Predicted Electrical Conductivity", out_fc, ecXML.project, "EC", real_id, "PRED",
                     ecXML.getUUID())
-    real_name = ecXML.getRealnames(ecXML.project)
     ecXML.write()
 
 
@@ -173,7 +165,8 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
         # export data files to Riverscapes project.
         if rs_bool == "true":
             arcpy.AddMessage("Exporting to Riverscapes project...")
-            rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0, real_id), in_fc_name)
+            real_id = projectXML.realIDdict[rs_real_name]
+            rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0, '', real_id), in_fc_name)
             rs_out_path = os.path.join(rs.getRSdirs(rs_dir, 1, 1, real_id), out_fc_name)
             rs.copyRSFiles(in_fc, rs_fc_path)
             rs.copyRSFiles(out_fc, rs_out_path)

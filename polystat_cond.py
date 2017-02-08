@@ -27,23 +27,14 @@ arcpy.env.overwriteOutput = True
 arcpy.CheckOutExtension("Spatial")
 
 # input variables:
-# calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-# out_tbl = arcpy.GetParameterAsText(1) # directory location for parameter summary table output.
-# env_dir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs.
-# rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscapes project outputs are required
-# wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
-# rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
-# rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes realization name
-# rs_dir = arcpy.GetParameterAsText(7) # directory where Riverscapes project files will be written
-
-calc_ply = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\catch_test"
-out_tbl = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
-env_dir = r"C:\JL\ISEMP\Data\ec\model\Grids_rsmp"
-rs_bool = "true"
-wshd_name = "Entiat"
-rs_proj_name = "Predicted Conductivity"
-rs_real_name = "Realization Run 01"
-rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
+calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
+out_tbl = arcpy.GetParameterAsText(1) # directory location for parameter summary table output.
+env_dir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs.
+rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscapes project outputs are required
+wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
+rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
+rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes realization name
+rs_dir = arcpy.GetParameterAsText(7) # directory where Riverscapes project files will be written
 
 # constants
 PARAM_LIST= [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names
@@ -246,7 +237,7 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, proj_name='', wshd_name='', 
     if rs_bool == "true":
         arcpy.AddMessage("Exporting as a Riverscapes project...")
         # generate unique realization ID
-        real_id = rs.getRealID()
+        real_id = rs.getRealID(time_stamp)
         # get filepaths for where input/output files will be copied
         rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0), in_fc_name)
         rs_tbl_path = os.path.join( rs.getRSdirs(rs_dir, 1, 0, real_id), out_tbl_name)

@@ -156,7 +156,7 @@ class ProjectXML:
         """adds an output tag to an analysis tag in the project xml document"""
         if parentNode == self.project:
             realizationNode = parentNode.find("Realizations")
-            subRealizationNode = realizationNode.find(oid)
+            subRealizationNode = realizationNode.find(subrealization)
             for name, value in subRealizationNode.attrib.items():
                 if value == realizationID:
                     realIDNode = subRealizationNode
@@ -195,7 +195,7 @@ class ProjectXML:
             nameNode = node.find('Name')
             for key, value in node.attrib.items():
                 if key == 'id':
-                    self.realIDdict[value] = nameNode.text.strip()
+                    self.realIDdict[nameNode.text.strip()] = value
         return
 
 
