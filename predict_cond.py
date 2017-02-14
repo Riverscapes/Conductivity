@@ -23,7 +23,7 @@ arcpy.env.overwriteOutput = True
 in_fc = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e. segments)
 in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
 out_fc = arcpy.GetParameterAsText(2) # stream network polyline feature class, with predicted conductivity
-rs_bool = arcpy.GetParameterAsText(3) # Boolean value indicates if a Riverscapes project should be exported
+rs_bool = arcpy.GetParameterAsText(3) # Boolean value indicates if this is a Riverscapes project
 rs_dir = arcpy.GetParameterAsText(4) # Directory where Riverscapes project files will be written
 rs_real_name = arcpy.GetParameterAsText(5) # Riverscapes project realization name.
 
@@ -80,12 +80,12 @@ def metadata(ecXML, in_fc, out_fc, real_id):
     ecXML.getOperator()
     # Add Meta tags
     ecXML.addMeta("Model", MODEL_RF, ecXML.project)
-    ecXML.addMeta("Predict Start Time", timeStart, ecXML.project)
-    ecXML.addMeta("Predict Stop Time", timeStop, ecXML.project)
-    # Add Project Input tags
-    ecXML.addProjectInput("Vector", "Segmented Stream Network", in_fc, ecXML.project, "SEG", ecXML.getUUID(), "True")
-    # Add Realization IOnput tags
-    ecXML.addRealizationInput(ecXML.project, "Vector", "EC", real_id, "SEG", "True")
+    # Add Realization Input tags
+    ecXML.addRealizationInputData(ecXML.project, "Vector", "EC", real_id, "Segmented Stream Network", in_fc,
+                                  ecXML.getUUID())
+    ecXML.addRealizationInputRef(ecXML.project, "DataTable", "EC", real_id, "PARAM_TABLE")
+    ecXML.addMeta("Predict Start Time", timeStart, ecXML.project, "EC", real_id)
+    ecXML.addMeta("Predict Stop Time", timeStop, ecXML.project, "EC", real_id)
     # Add Analysis Output tags
     ecXML.addOutput("Vector", "Predicted Electrical Conductivity", out_fc, ecXML.project, "EC", real_id, "PRED",
                     ecXML.getUUID())
@@ -119,8 +119,7 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
 
     if checkLineOID(in_fc) == True:
         arcpy.AddMessage("Predicting conductivity using Random Forest model in R...")
-        gc.enable() # turn on automatic garbage collection
-        out_dir = os.path.dirname(out_fc) # get output directory path
+        gc.enable()
 
         # initiate Riverscapes project XML object and start processing timestamp
         if rs_bool == "true":
@@ -166,13 +165,17 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
         if rs_bool == "true":
             arcpy.AddMessage("Exporting to Riverscapes project...")
             real_id = projectXML.realIDdict[rs_real_name]
-            rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0, '', real_id), in_fc_name)
-            rs_out_path = os.path.join(rs.getRSdirs(rs_dir, 1, 1, real_id), out_fc_name)
-            rs.copyRSFiles(in_fc, rs_fc_path)
-            rs.copyRSFiles(out_fc, rs_out_path)
-            metadata(projectXML, rs_fc_path, rs_out_path, real_id)
+            # copy input/output data to Riverscapes project directories
+            abs_fc_path = os.path.join(rs.getRSDirAbs(rs_dir, 1, 0, real_id), in_fc_name)
+            abs_out_path = os.path.join(rs.getRSDirAbs(rs_dir, 1, 2, real_id), out_fc_name)
+            rs.copyRSFiles(in_fc, abs_fc_path)
+            rs.copyRSFiles(out_fc, abs_out_path)
+            # write project XML file. Note the use of the 'relative path version' of get directories function
+            rel_fc_path = os.path.join(rs.getRSDirRel(1, 0, real_id), in_fc_name)
+            rel_out_path = os.path.join(rs.getRSDirRel(1, 2, real_id), out_fc_name)
+            metadata(projectXML, rel_fc_path, rel_out_path, real_id)
 
-        # clean up temporary files
+        # clean up
         clear_inmemory()
         arcpy.Delete_management(out_dir + r"\predicted_cond.dbf")
         arcpy.Delete_management(out_dir + r"\predicted_cond.csv")

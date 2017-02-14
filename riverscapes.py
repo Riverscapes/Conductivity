@@ -1,13 +1,12 @@
 import os
 import shutil
 import arcpy
-from random import choice
-from string import digits
-from string import ascii_uppercase
+
+arcpy.env.overwriteOutput = True
 
 # constants
-RS_SUBDIRS = ["Inputs", "Realizations"] # directories in the Riverscape Project root
-RS_OUTDIRS = ["Polystat", "Predict"] # directories storing Riverscape realization outputs
+RS_SUBDIRS = ["ProjectInputs", "Realizations"] # directories in the Riverscape Project root
+RS_OUTDIRS = ["Inputs", "PreprocessOutput", "PredictOutput"] # directories storing Riverscape realization outputs
 
 HUCID_DICT = {"Asotin":"17060103",
               "Big-Navarro-Garcia (CA)":"18010108",
@@ -55,17 +54,24 @@ def copyRSFiles(from_file, out_file):
         arcpy.CopyFeatures_management("from_file_lyr", out_file)
 
 
-def getRSdirs(root, subdir_index='', outdir_index='', real_id=''):
+def getRSDirAbs(root, subdir_index='', outdir_index='', real_id=''):
     if subdir_index != '' and outdir_index != '':
-        return os.path.join(root, RS_SUBDIRS[subdir_index], real_id, RS_OUTDIRS[outdir_index]) # Realizations
+        return os.path.join(root, RS_SUBDIRS[subdir_index], real_id, RS_OUTDIRS[outdir_index]) # Realizations folder
     if subdir_index != '' and outdir_index == '':
-        return os.path.join(root, RS_SUBDIRS[subdir_index]) # Inputs
+        return os.path.join(root, RS_SUBDIRS[subdir_index]) # Inputs folder
+
+
+def getRSDirRel(subdir_index='', outdir_index='', real_id=''):
+    if subdir_index != '' and outdir_index != '':
+        return os.path.join(RS_SUBDIRS[subdir_index], real_id, RS_OUTDIRS[outdir_index]) # Realizations folder
+    if subdir_index != '' and outdir_index == '':
+        return RS_SUBDIRS[subdir_index] # Inputs folder
 
 
 def getHUCID(wshd_name):
     huc_id = HUCID_DICT[wshd_name]
     return huc_id
 
+
 def getRealID(timestamp):
-    return "{0}{1}".format("real", timestamp)
-    #return "real" + ''.join(choice(ascii_uppercase + digits) for i in range(8))
+    return "{0}{1}".format("run", timestamp)

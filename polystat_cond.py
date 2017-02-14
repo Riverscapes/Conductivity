@@ -17,6 +17,8 @@ import metadata.meta_sfr as meta_sfr
 import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
+version = "0.4"
+
 # start processing time
 startTime = time.time()
 printTime = strftime("%a, %d %b %Y %H:%M:%S")
@@ -35,6 +37,7 @@ wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required fo
 rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
 rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes realization name
 rs_dir = arcpy.GetParameterAsText(7) # directory where Riverscapes project files will be written
+
 
 # constants
 PARAM_LIST= [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names
@@ -181,26 +184,24 @@ def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, r
     ecXML.addMeta("HUCID", huc_id, ecXML.project)
     ecXML.addMeta("Region", "CRB", ecXML.project)
     ecXML.addMeta("Watershed", wshd_name, ecXML.project)
-    ecXML.addMeta("Operator", ecXML.operator, ecXML.project)
-    ecXML.addMeta("ComputerID", ecXML.computerID, ecXML.project)
-    ecXML.addMeta("Polystat Start Time", timeStart, ecXML.project)
-    ecXML.addMeta("Polystat Stop Time", timeStop, ecXML.project)
-    # Add Riverscapeswproject Input tags
-    ecXML.addProjectInput("Vector", "Catchment Area Polygons", calc_ply, ecXML.project, "CATCH", ecXML.getUUID())
-    # Add Riverscapes realization tags
-    ecXML.addRealization(real_name, real_id, timeStop, '0.1', ecXML.getUUID())
-    # Add Riverscapes parameter tags
-    ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.project, "EC")
-    # Add Riverscapes realization input tags
-    ecXML.addRealizationInput(ecXML.project, "Vector", "EC", real_id, "CATCH")
-    ecXML.addRealizationInput(ecXML.project, "DataTable", "EC", real_id, "PARAMS")
-    # Add Riverscapes analysis output tags
-    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "EC", real_id, "PARAMS",
+    # Add Realization tags
+    ecXML.addRealization(real_name, real_id, timeStop, version, ecXML.getUUID())
+    ecXML.addMeta("Operator", ecXML.operator, ecXML.project, "EC", real_id)
+    ecXML.addMeta("ComputerID", ecXML.computerID, ecXML.project, "EC", real_id)
+    ecXML.addMeta("Polystat Start Time", timeStart, ecXML.project, "EC", real_id)
+    ecXML.addMeta("Polystat Stop Time", timeStop, ecXML.project, "EC", real_id)
+    # Add Parameter tags
+    ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.project, "EC", real_id)
+    # Add Realization input tags
+    ecXML.addRealizationInputData(ecXML.project, "Vector", "EC", real_id, "Catchment Area Polygons", calc_ply, ecXML.getUUID())
+    ecXML.addRealizationInputRef(ecXML.project, "Raster", "EC", real_id, "PARAMs")
+    # Add Analysis output tags
+    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "EC", real_id, "PARAM_TABLE",
                     ecXML.getUUID())
     ecXML.write()
 
 
-def main(in_fc, out_tbl, env_dir, inParam, rs_bool, proj_name='', wshd_name='', real_name='', rs_dir=''):
+def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = '', real_name='', rs_dir=''):
     """Main processing function"""
 
     in_fc_name = os.path.basename(in_fc)
@@ -209,7 +210,7 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, proj_name='', wshd_name='', 
 
     # initiate generic metadata XML object
     time_stamp = time.strftime("%Y%m%d%H%M")
-    out_xml = os.path.join(out_dir, "{0}_{1}.{2}".format("meta_polystat", time_stamp, "xml"))
+    out_xml = os.path.join(out_dir, "{0}_{1}.{2}".format("meta_preprocess", time_stamp, "xml"))
     mWriter = meta_sfr.MetadataWriter("Pre-process Environmental Parameters", "0.4")
     mWriter.createRun()
     mWriter.currentRun.addParameter("Catchment area feature class", in_fc)
@@ -236,23 +237,24 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, proj_name='', wshd_name='', 
     # Riverscapes output, including project XML and data files
     if rs_bool == "true":
         arcpy.AddMessage("Exporting as a Riverscapes project...")
-        # generate unique realization ID
         real_id = rs.getRealID(time_stamp)
-        # get filepaths for where input/output files will be copied
-        rs_fc_path = os.path.join(rs.getRSdirs(rs_dir, 0), in_fc_name)
-        rs_tbl_path = os.path.join( rs.getRSdirs(rs_dir, 1, 0, real_id), out_tbl_name)
-        # finalize projectXML object and write the XML file
+        # copy input/output data to Riverscapes project directories
+        abs_fc_path = os.path.join(rs.getRSDirAbs(rs_dir, 1, 0, real_id), in_fc_name)
+        abs_tbl_path = os.path.join(rs.getRSDirAbs(rs_dir, 1, 1, real_id), out_tbl_name)
+        rs.writeRSDirs(rs_dir, real_id)
+        rs.copyRSFiles(in_fc, abs_fc_path)
+        rs.copyRSFiles(out_tbl, abs_tbl_path)
+        # write project XML file. Note the use of the 'relative path version' of get directories function
+        rel_fc_path = os.path.join(rs.getRSDirRel(1, 0, real_id), in_fc_name)
+        rel_tbl_path = os.path.join(rs.getRSDirRel(1, 1, real_id), out_tbl_name)
         metadata(projectXML,
-                 rs_fc_path,
+                 rel_fc_path,
                  env_dir,
-                 rs_tbl_path,
+                 rel_tbl_path,
                  rs_bool,
                  wshd_name,
                  real_name,
                  real_id)
-        rs.writeRSDirs(rs_dir, real_id)
-        rs.copyRSFiles(in_fc, rs_fc_path)
-        rs.copyRSFiles(out_tbl, rs_tbl_path)
 
     # clean up
     arcpy.Delete_management(addFieldsFC)
@@ -260,7 +262,7 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, proj_name='', wshd_name='', 
     clear_inmemory()
 
 if __name__ == "__main__":
-    main(calc_ply, out_tbl, env_dir, PARAM_LIST, rs_bool, rs_proj_name, wshd_name, rs_real_name, rs_dir)
+    main(calc_ply, out_tbl, env_dir, PARAM_LIST, rs_bool, wshd_name, rs_proj_name, rs_real_name, rs_dir)
 
 
 # end processing time
