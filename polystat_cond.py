@@ -30,8 +30,8 @@ arcpy.CheckOutExtension("Spatial")
 
 # input variables:
 calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-out_tbl = arcpy.GetParameterAsText(1) # directory location for parameter summary table output.
-env_dir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs.
+env_dir = arcpy.GetParameterAsText(1) # directory containing the conductivity model raster inputs.
+out_tbl = arcpy.GetParameterAsText(2) # directory location for parameter summary table output.
 rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscapes project outputs are required
 wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
 rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
