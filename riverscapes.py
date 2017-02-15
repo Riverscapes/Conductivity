@@ -8,7 +8,7 @@ arcpy.env.overwriteOutput = True
 RS_SUBDIRS = ["ProjectInputs", "Realizations"] # directories in the Riverscape Project root
 RS_OUTDIRS = ["Inputs", "PreprocessOutput", "PredictOutput"] # directories storing Riverscape realization outputs
 
-HUCID_DICT = {"Big-Navarro-Garcia (CA)":"18010108",
+HUCID_DICT = {"pp":"18010108",
               "Clearwater":"17060306",
               "Entiat":"17020010",
               "Hells Canyon":"17060101",
