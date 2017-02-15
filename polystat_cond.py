@@ -6,11 +6,18 @@
 #				to the Olson et. al. Random Forest conductivity model (via the predict_cond.py script).
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, Spatial Analyst extension
-# version:		0.3
+# version:		0.4
 
-import time, gc, sys, arcpy
+import gc, sys, arcpy
+import os
+import time
 from arcpy.sa import *
 from time import strftime
+import metadata.meta_sfr as meta_sfr
+import metadata.meta_rs as meta_rs
+import riverscapes as rs
+
+version = "0.4"
 
 # start processing time
 startTime = time.time()
@@ -23,10 +30,17 @@ arcpy.CheckOutExtension("Spatial")
 
 # input variables:
 calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-outDir = arcpy.GetParameterAsText(1) # directory location for the polygon feature class output
-envDir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs
+out_tbl = arcpy.GetParameterAsText(1) # directory location for parameter summary table output.
+env_dir = arcpy.GetParameterAsText(2) # directory containing the conductivity model raster inputs.
+rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscapes project outputs are required
+wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
+rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
+rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes realization name
+rs_dir = arcpy.GetParameterAsText(7) # directory where Riverscapes project files will be written
 
-param_list = [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names
+
+# constants
+PARAM_LIST= [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names
             ["CaO_Mean", "cao_19jan10"],
             ["EVI_MaxAve", "evi_max_10y"],
             ["LST32AVE", "lst32f_usgs"],
@@ -47,18 +61,18 @@ param_list = [["AtmCa", "ca_avg_250"], # list of model parameter names and assoc
             ["UCS_Mean", "ucs_19jan10"]]
 
 
-def checkLineOID(inFC):
+def checkLineOID(in_fc):
     """Checks the input upstream catchment area polygon feature class for the
     presence of an attribute field named 'LineOID'.
 
     Args:
-        inFC: Input upstream catchment area polygon feature class
+        in_fc: Input upstream catchment area polygon feature class
 
     Returns:
         A boolean true or false value.
     """
     fieldName = "LineOID"
-    fields = arcpy.ListFields(inFC, fieldName)
+    fields = arcpy.ListFields(in_fc, fieldName)
     for field in fields:
         if field.name == fieldName:
             return True
@@ -66,23 +80,23 @@ def checkLineOID(inFC):
             return False
 
 
-def addParamFields(inFC, inParam):
+def addParamFields(in_fc, inParam):
     """Removes unnecessary fields and adding blank model parameter fields
     to the input upstream catchment area polygon feature class.
 
     Args:
-        inFC: Input upstream catchment area polygon feature class
+        in_fc: Input upstream catchment area polygon feature class
         inParam: 2D list of model parameter names and associated raster
         dataset names
 
     Returns:
         tmp_fc: Polyline feature class with added parameter fields
     """
-    arcpy.AddMessage("Preparing parameter fields in " + inFC + "...")
-    tmpFC = arcpy.FeatureClassToFeatureClass_conversion(inFC, "in_memory", "tmp_fc")
+    arcpy.AddMessage("Preparing parameter fields in " + in_fc + "...")
+    tmpFC = arcpy.FeatureClassToFeatureClass_conversion(in_fc, "in_memory", "tmp_fc")
     field_obj_list = arcpy.ListFields(tmpFC)
     field_name_list = []
-    if checkLineOID(inFC) == True:
+    if checkLineOID(in_fc) == True:
         for f in field_obj_list:
             if not f.type == "Geometry" and not f.type == "OID" and not f.name == "LineOID":
                 field_name_list.append(str(f.name))
@@ -95,12 +109,12 @@ def addParamFields(inFC, inParam):
     return tmpFC
 
 
-def calcParams(inFC, inParam):
+def calcParams(in_fc, env_dir, inParam):
     """Build attribute table os summarized parameter values for the input
     feature class.
 
     Args:
-        inFC: Input upstream catchment area polygon feature class
+        in_fc: Input upstream catchment area polygon feature class
         inParam: 2D list of model parameter names and associated raster
         dataset names
 
@@ -111,10 +125,10 @@ def calcParams(inFC, inParam):
     """
     arcpy.AddMessage("Summarizing parameter values per catchment area polygon...")
     gc.enable()
-    with arcpy.da.SearchCursor(inFC, ["LineOID"]) as cursor:
+    with arcpy.da.SearchCursor(in_fc, ["LineOID"]) as cursor:
         for row in cursor:
             expr = """ "LineOID" = """ + str(row[0])
-            arcpy.MakeFeatureLayer_management(inFC, "tmpFC")
+            arcpy.MakeFeatureLayer_management(in_fc, "tmpFC")
             arcpy.SelectLayerByAttribute_management("tmpFC", "NEW_SELECTION", expr)
             ras_record = arcpy.PolygonToRaster_conversion("tmpFC", "LineOID", "in_memory\\ras_record",
                                                           "CELL_CENTER", "#", 30)
@@ -123,7 +137,7 @@ def calcParams(inFC, inParam):
             arcpy.CalculateStatistics_management(ras_record)
             for r in inParam:
                 field_name = r[0]
-                ras_name = envDir + "\\" + r[1]
+                ras_name = env_dir + "\\" + r[1]
                 zstat_result = "in_memory\\zstat_result"
                 ZonalStatisticsAsTable(ras_record, "LineOID", ras_name, zstat_result, "DATA", "MEAN")
                 arcpy.AddJoin_management("tmpFC", "LineOID", zstat_result, "LineOID", "KEEP_ALL")
@@ -154,37 +168,101 @@ def clear_inmemory():
     return
 
 
-def removeErrors(inFC):
-    """Removes rows from the catchment feature class where
-    error_code == 1, and returns an in_memory feature class.
+def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, real_id):
+    """Builds and writes an XML file according to the Riverscapes Project specifications
 
-    Args:
-        inFC: catchment area polygon feature class
+        Args:
+            ecXML: Project XML object instance
+    """
 
-    Returns:
-        In-memory polygon feature class with error records removed"""
+    # Finalize metadata
+    timeStart, timeStop = ecXML.finalize()
 
-    arcpy.AddMessage("Removing catchment areas where error_code = 1...")
+    ecXML.getOperator()
+    # Add Meta tags
+    huc_id = rs.getHUCID(wshd_name)
+    ecXML.addMeta("HUCID", huc_id, ecXML.project)
+    ecXML.addMeta("Region", "CRB", ecXML.project)
+    ecXML.addMeta("Watershed", wshd_name, ecXML.project)
+    # Add Realization tags
+    ecXML.addRealization(real_name, real_id, timeStop, version, ecXML.getUUID())
+    ecXML.addMeta("Operator", ecXML.operator, ecXML.project, "EC", real_id)
+    ecXML.addMeta("ComputerID", ecXML.computerID, ecXML.project, "EC", real_id)
+    ecXML.addMeta("Polystat Start Time", timeStart, ecXML.project, "EC", real_id)
+    ecXML.addMeta("Polystat Stop Time", timeStop, ecXML.project, "EC", real_id)
+    # Add Parameter tags
+    ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.project, "EC", real_id)
+    # Add Realization input tags
+    ecXML.addRealizationInputData(ecXML.project, "Vector", "EC", real_id, "Catchment Area Polygons", calc_ply, ecXML.getUUID())
+    ecXML.addRealizationInputRef(ecXML.project, "Raster", "EC", real_id, "PARAMs")
+    # Add Analysis output tags
+    ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "EC", real_id, "PARAM_TABLE",
+                    ecXML.getUUID())
+    ecXML.write()
 
-    inFClyr = "inFClyr"
-    tmpFC = r"in_memory\tmpFC"
-    arcpy.MakeFeatureLayer_management(inFC, inFClyr)
-    arcpy.FeatureClassToFeatureClass_conversion(inFClyr, "in_memory", "tmpFC", """"error_code" IS NULL""")
-    return tmpFC
 
-
-def main(inFC, inParam):
+def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = '', real_name='', rs_dir=''):
     """Main processing function"""
-    tmpFC = removeErrors(inFC)
-    addFieldsFC = addParamFields(tmpFC, inParam)
-    calcParamsFC = calcParams(addFieldsFC, inParam)
-    arcpy.TableToTable_conversion(calcParamsFC, outDir, "ws_cond_param.dbf")
+
+    in_fc_name = os.path.basename(in_fc)
+    out_dir = os.path.dirname(out_tbl)
+    out_tbl_name = os.path.basename(out_tbl)
+
+    # initiate generic metadata XML object
+    time_stamp = time.strftime("%Y%m%d%H%M")
+    out_xml = os.path.join(out_dir, "{0}_{1}.{2}".format("meta_preprocess", time_stamp, "xml"))
+    mWriter = meta_sfr.MetadataWriter("Pre-process Environmental Parameters", "0.4")
+    mWriter.createRun()
+    mWriter.currentRun.addParameter("Catchment area feature class", in_fc)
+    mWriter.currentRun.addParameter("Output environmental parameter table", out_tbl)
+    mWriter.currentRun.addParameter("Environmental parameter workspace", env_dir)
+    mWriter.currentRun.addParameter("Output metadata XML", out_xml)
+
+    # initiate Riverscapes project XML object
+    if rs_bool == "true":
+        rs.writeRSRoot(rs_dir)
+        rs_xml = "{0}\\{1}".format(rs_dir, "ec_project.xml")
+        projectXML = meta_rs.ProjectXML("polystat", rs_xml, "EC", proj_name)
+
+    # run the environmental parameter summary
+    addFieldsFC = addParamFields(in_fc, inParam)
+    calcParamsFC = calcParams(addFieldsFC, env_dir, inParam)
+    arcpy.TableToTable_conversion(calcParamsFC, out_dir, out_tbl_name)
+
+    # finalize and write generic XML file
+    tool_status = "Success"
+    mWriter.finalizeRun(tool_status)
+    mWriter.writeMetadataFile(out_xml)
+
+    # Riverscapes output, including project XML and data files
+    if rs_bool == "true":
+        arcpy.AddMessage("Exporting as a Riverscapes project...")
+        real_id = rs.getRealID(time_stamp)
+        # copy input/output data to Riverscapes project directories
+        abs_fc_path = os.path.join(rs.getRSDirAbs(rs_dir, 1, 0, real_id), in_fc_name)
+        abs_tbl_path = os.path.join(rs.getRSDirAbs(rs_dir, 1, 1, real_id), out_tbl_name)
+        rs.writeRSDirs(rs_dir, real_id)
+        rs.copyRSFiles(in_fc, abs_fc_path)
+        rs.copyRSFiles(out_tbl, abs_tbl_path)
+        # write project XML file. Note the use of the 'relative path version' of get directories function
+        rel_fc_path = os.path.join(rs.getRSDirRel(1, 0, real_id), in_fc_name)
+        rel_tbl_path = os.path.join(rs.getRSDirRel(1, 1, real_id), out_tbl_name)
+        metadata(projectXML,
+                 rel_fc_path,
+                 env_dir,
+                 rel_tbl_path,
+                 rs_bool,
+                 wshd_name,
+                 real_name,
+                 real_id)
+
+    # clean up
     arcpy.Delete_management(addFieldsFC)
     arcpy.Delete_management(calcParamsFC)
     clear_inmemory()
 
 if __name__ == "__main__":
-    main(calc_ply, param_list)
+    main(calc_ply, out_tbl, env_dir, PARAM_LIST, rs_bool, wshd_name, rs_proj_name, rs_real_name, rs_dir)
 
 
 # end processing time
