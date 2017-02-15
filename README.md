@@ -4,16 +4,18 @@
 
 Electrical conductivity has been shown to be a potential indicator of aquatic macroinvertebrate species richness (Spieles and Mitsch 2000, Brown, Hannah et al. 2007) and also can influence faunal life stages (Tarín and Cano 2000). Preliminary gross primary productivity model development work by [Eco Logical Research, Inc.](https://sites.google.com/a/ecologicalresearch.net/ecologicalreseach-net/) (ELR) has shown promising results using temperature, solar inputs, and conductivity as inputs. By incorporating a previously developed electrical conductivity predictive regression model (Olson and Hawkins 2012), we built an automated workflow for predicting conductivity for a stream network, summarizing predicted upstream conductivity values (μS cm<sup>−1</sup>) per 1000 meter stream segments.
 
-The random forest electrical conductivity model was developed using 19 environmental parameters (detailed in [Olson and Hawkins, 2012](http://onlinelibrary.wiley.com/doi/10.1029/2011WR011088/abstract)). To determine predicted electrical conductivity for a stream network, a series of data pre-processing steps must be performed prior to initiating the actual modeling process. The user must first segment streams reaches into segments of uniform-length using the Segment Stream Network from the [Geomorphic Network and Analysis Toolbox (GNAT)](https://bitbucket.org/KellyWhitehead/geomorphic-network-and-analysis-toolbox), a custom ArcGIS Python toolbox developed by [South Fork Research, Inc](https://southforkresearch.org). The user should then delineate upstream catchment area polygons for reach stream segment using another custom Python toolbox, the [Catchment Tool](https://github.com/SouthForkResearch/catchment-tool). These upstream catchment area polygons are used to calculate mean values from raster datasets representing each of the 19 environmental parameters. The summary values for each catchment area and it's associated stream segment are compiled into a table, which serves as the primary input for the random forest model to generate predicted electrical conductivity values per stream segment. Currently, **Conductivity Tools** includes two tools: *Pre-process Environmental Parameters* and *Predict Conductivity*, which should be run in sequence.
+The random forest electrical conductivity model was developed using 19 environmental parameters (detailed in [Olson and Hawkins, 2012](http://onlinelibrary.wiley.com/doi/10.1029/2011WR011088/abstract)). To determine predicted electrical conductivity for a stream network, a series of data pre-processing steps must be performed prior to initiating the actual modeling process. The user must first segment streams reaches into segments of uniform-length using the Segment Stream Network from the [Geomorphic Network and Analysis Toolbox (GNAT)](https://github.com/SouthForkResearch/gnat), a custom ArcGIS Python toolbox developed by [South Fork Research, Inc](https://southforkresearch.org). The user should then delineate upstream catchment area polygons for reach stream segment using another custom Python toolbox, the [Catchment Tool](https://github.com/SouthForkResearch/catchment-tool). These upstream catchment area polygons are used to calculate mean values from raster datasets representing each of the 19 environmental parameters. The summary values for each catchment area and it's associated stream segment are compiled into a table, which serves as the primary input for the random forest model to generate predicted electrical conductivity values per stream segment. 
 
-## Project Status and Updates
+Currently, **Conductivity Tools** includes two tools: *Pre-process Environmental Parameters* and *Predict Conductivity*, which should be run in sequence.
 
-* 11/9/2016 - Transferred repository from [jesselangdon](https://github.com/jesselangdon) to [SouthForkResearch](https://github.com/SouthForkResearch).
-* 7/27/2016 - New tool added to Conductivity Tools toolbox, Predict Conductivity
-* 7/25/2016 - Pre-processing tool, v0.3, uploaded.
-* 8/6/2015 - Beta version of the Pre-processing Tool, v0.1, uploaded.
+## Download
 
-## Requirements
+##### [Current Version (0.5)](https://github.com/SouthForkResearch/conductivity/archive/master.zip) released on 2/15/2017.
+* Added [Riverscapes](http://riverscapes.northarrowresearch.com/about/) project management and exporting.
+* Unnecessary attribute fields are removed from final output.
+*
+
+### Requirements
 
 * Python 2.7
 * R 3.2.5
@@ -23,11 +25,17 @@ The random forest electrical conductivity model was developed using 19 environme
 
 *Please note*: After R is installed, check that the `Rscript` command is available in your Windows command line terminal.  If not, then the R installation folder (i.e. for Windows, this would be similar to "C:\Program Files\R\R-3.2.5\bin") should be added to the system environment PATH variable. Instructions on how to do this can be found [here](http://windowsitpro.com/systems-management/how-can-i-add-new-folder-my-system-path).
 
-## Installation
+### Installation
 
-Download the Conductivity Tools toolbox repository from https://github.com/jesselangdon/conductivity.git.  This will include the ArcGIS toolbox, the required Python and R scripts, and the Random Forest model (rf17bCnd9.rdata). The toolbox can then be added to ArcGIS by opening the ArcToolbox window, right-clicking `ArcToolbox` and choosing `Add Toolbox`.
+Conductivity Tools is provided as a zip file containing an ESRI .tbx file and supporting scripts.
 
-## Data Input Variables
+1. Unzip the contents of the zip file to your computer. This will include the ArcGIS toolbox, the required Python and R scripts, and the Random Forest model (rf17bCnd9.rdata).
+2. Open ArcGIS
+2. Open the ArcToolbox window, right-click `ArcToolbox` and choose `Add Toolbox`.
+
+## Using the Conductivity Tools
+
+### Data Input Variables
 
 **Pre-process Environmental Parameters** 
 
@@ -77,7 +85,7 @@ Download the Conductivity Tools toolbox repository from https://github.com/jesse
 * Soil erodibility
 * Soil permeability
 
-## Citations
+### Citations
 
 * Brown, L. E., et al. (2007). Vulnerability of alpine stream biodiversity to shrinking glaciers and snowpacks. Global Change Biology 13(5): 958-966.
 * Liaw, A. and M. Wiener. 2002. Classification and regression by randomForest. R New 2(3): 18-22. Package URL: https://cran.r-project.org/web/packages/randomForest. Accessed 6/21/2016.
@@ -86,6 +94,6 @@ Download the Conductivity Tools toolbox repository from https://github.com/jesse
 * R Core Team (2016). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. URL https://www.R-project.org/
 * Tarín JJ, Cano A, editors. Fertilization in protozoa and metazoan animals: cellular and molecular aspects. Springer Science & Business Media; 2012 Dec 6.
 
-## Acknowledgments
+### Acknowledgments
 
-The Conductivity Tools toolbox has been developed for [South Fork Research, Inc.](http://southforkresearch.org) by Jesse Langdon.
+The Conductivity Tools toolbox has been developed for [South Fork Research, Inc.](http://southforkresearch.org) by [Jesse Langdon](https://github.com/jesselangdon).
