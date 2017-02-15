@@ -6,7 +6,7 @@
 #				to the Olson et. al. Random Forest conductivity model (via the predict_cond.py script).
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, Spatial Analyst extension
-# version:		0.4
+# version:		0.5
 
 import gc, sys, arcpy
 import os
@@ -17,7 +17,7 @@ import metadata.meta_sfr as meta_sfr
 import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
-version = "0.4"
+version = "0.5"
 
 # start processing time
 startTime = time.time()

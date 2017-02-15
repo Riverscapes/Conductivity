@@ -5,7 +5,7 @@
 #               RF prediction is then joined back to the input stream network.
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, built-in Python modules
-# version:		0.4
+
 
 import arcpy
 import time
