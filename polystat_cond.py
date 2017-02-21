@@ -213,9 +213,14 @@ def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, r
 def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = '', real_name='', rs_dir=''):
     """Main processing function"""
 
+    in_fc_dir = os.path.dirname(in_fc)
     in_fc_name = os.path.basename(in_fc)
     out_dir = os.path.dirname(out_tbl)
     out_tbl_name = os.path.basename(out_tbl)
+
+    in_fc_type = arcpy.Describe(in_fc_dir).workspaceType
+    if in_fc_type == "LocalDatabase":
+        in_shp_name = in_fc_name + ".shp"
 
     # initiate generic metadata XML object
     time_stamp = time.strftime("%Y%m%d%H%M")
@@ -254,7 +259,7 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = ''
         rs.copyRSFiles(in_fc, abs_fc_path)
         rs.copyRSFiles(out_tbl, abs_tbl_path)
         # write project XML file. Note the use of the 'relative path version' of get directories function
-        rel_fc_path = os.path.join(rs.getRSDirRel(1, 0, real_id), in_fc_name)
+        rel_fc_path = os.path.join(rs.getRSDirRel(1, 0, real_id), in_shp_name)
         rel_tbl_path = os.path.join(rs.getRSDirRel(1, 1, real_id), out_tbl_name)
         metadata(projectXML,
                  rel_fc_path,
