@@ -29,15 +29,24 @@ arcpy.env.overwriteOutput = True
 arcpy.CheckOutExtension("Spatial")
 
 # input variables:
-calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
-env_dir = arcpy.GetParameterAsText(1) # directory containing the conductivity model raster inputs.
-out_tbl = arcpy.GetParameterAsText(2) # directory location for parameter summary table output.
-rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscapes project outputs are required
-wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
-rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
-rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes realization name
-rs_dir = arcpy.GetParameterAsText(7) # directory where Riverscapes project files will be written
+# calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
+# env_dir = arcpy.GetParameterAsText(1) # directory containing the conductivity model raster inputs.
+# out_tbl = arcpy.GetParameterAsText(2) # directory location for parameter summary table output.
+# rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscapes project outputs are required
+# wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
+# rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
+# rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes realization name
+# rs_dir = arcpy.GetParameterAsText(7) # directory where Riverscapes project files will be written
 
+# TEST polystat_cond.py
+calc_ply = r"C:\JL\Testing\conductivity\Riverscapes\inputs.gdb\catch_test"
+out_tbl = r"C:\JL\Testing\conductivity\Riverscapes\outputs\cond_params.dbf"
+env_dir = r"C:\JL\ISEMP\Data\ec\model\Grids_rsmp"
+rs_bool = "true"
+wshd_name = "Entiat"
+rs_proj_name = "Entiat Predicted Conductivity"
+rs_real_name = "Realization Run 01"
+rs_dir = r"C:\JL\Testing\conductivity\Riverscapes\rs"
 
 # constants
 PARAM_LIST= [["AtmCa", "ca_avg_250"], # list of model parameter names and associated raster dataset names

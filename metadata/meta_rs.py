@@ -120,12 +120,12 @@ class ProjectXML:
         """adds parameter tags to the project xml document"""
         realizationNode = parentNode.find("Realizations")
         subRealizationNode = realizationNode.find(subrealization)
-        for name, value in subRealizationNode.attrib.items():
-            if value == realizationID:
+        for key, val in subRealizationNode.attrib.items():
+            if val == realizationID:
                 realIDNode = subRealizationNode
         paramNode = realIDNode.find("Parameters")
         if paramNode is None:
-            paramNode = ET.SubElement(parentNode, "Parameters")
+            paramNode = ET.SubElement(realIDNode, "Parameters")
 
         node = ET.SubElement(paramNode, "Param")
         node.set("name", name)
@@ -212,16 +212,16 @@ class ProjectXML:
             for key, val in subRealizationNode.attrib.items():
                 if val == realizationID:
                     realIDNode = subRealizationNode
-            analysisNode = realIDNode.find("Analysis")
+            analysisNode = realIDNode.find("Analyses")
             outputsNode = analysisNode.find("Outputs")
         elif parentNode == self.realizations:
             subRealizationNode = parentNode.find(subrealization)
             for key, val in subRealizationNode.attrib.items():
                 if val == realizationID:
                     realIDNode = subRealizationNode
-            analysisNode = realIDNode.find("Analysis")
+            analysisNode = realIDNode.find("Analyses")
             if analysisNode is None:
-                analysisNode = ET.SubElement(subRealizationNode, "Analysis")
+                analysisNode = ET.SubElement(subRealizationNode, "Analyses")
                 outputsNode = analysisNode.find("Outputs")
                 if outputsNode is None:
                     outputsNode = ET.SubElement(analysisNode, "Outputs")
