@@ -212,20 +212,23 @@ class ProjectXML:
             for key, val in subRealizationNode.attrib.items():
                 if val == realizationID:
                     realIDNode = subRealizationNode
-            analysisNode = realIDNode.find("Analyses")
+            analysesNode = realIDNode.find("Analyses")
+            analysisNode = analysesNode.find("Analysis")
             outputsNode = analysisNode.find("Outputs")
         elif parentNode == self.realizations:
             subRealizationNode = parentNode.find(subrealization)
             for key, val in subRealizationNode.attrib.items():
                 if val == realizationID:
                     realIDNode = subRealizationNode
-            analysisNode = realIDNode.find("Analyses")
-            if analysisNode is None:
-                analysisNode = ET.SubElement(subRealizationNode, "Analyses")
+            analysesNode = realIDNode.find("Analyses")
+            if analysesNode is None:
+                analysesNode = ET.SubElement(subRealizationNode, "Analyses")
+                analysisNode = ET.SubElement(analysesNode, "Analysis")
                 outputsNode = analysisNode.find("Outputs")
                 if outputsNode is None:
                     outputsNode = ET.SubElement(analysisNode, "Outputs")
             else:
+                analysisNode = analysesNode.find("Analysis")
                 outputsNode = analysisNode.find("Outputs")
         typeNode = ET.SubElement(outputsNode, otype)
         if oid is not '':

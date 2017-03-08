@@ -6,7 +6,7 @@
 #				to the Olson et. al. Random Forest conductivity model (via the predict_cond.py script).
 # author:		Jesse Langdon
 # dependencies: ESRI arcpy module, Spatial Analyst extension
-# version:		0.5.1
+# version:		0.5.2
 
 import gc, sys, arcpy
 import os
@@ -17,7 +17,7 @@ import metadata.meta_sfr as meta_sfr
 import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
-version = "0.5.1"
+version = "0.5.2"
 
 # start processing time
 startTime = time.time()
@@ -226,7 +226,7 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = ''
     # initiate Riverscapes project XML object
     if rs_bool == "true":
         rs.writeRSRoot(rs_dir)
-        rs_xml = "{0}\\{1}".format(rs_dir, "ec_project.xml")
+        rs_xml = "{0}\\{1}".format(rs_dir, "project.rs.xml")
         projectXML = meta_rs.ProjectXML("polystat", rs_xml, "EC", proj_name)
 
     # run the environmental parameter summary
