@@ -150,7 +150,7 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
 
         # initiate Riverscapes project XML object and start processing timestamp
         if rs_bool == "true":
-            rs_xml = "{0}\\{1}".format(rs_dir, "ec_project.xml")
+            rs_xml = "{0}\\{1}".format(rs_dir, "project.rs.xml")
             projectXML = meta_rs.ProjectXML("predict", rs_xml)
 
         # variables for the subprocess function
