@@ -132,7 +132,7 @@ class ProjectXML:
         node.text = str(value)
 
 
-    def addRealizationInputData(self, parentNode, type, subrealization, realizationID, name='', path='', guid='', ref='', append=''):
+    def addRealizationInputData(self, parentNode, type, subrealization, realizationID, name='', path='', oid='', guid='', ref='', append=''):
         """adds realization input tags"""
         realizationNode = parentNode.find("Realizations")
         subRealizationNode = realizationNode.find(subrealization)
@@ -144,6 +144,8 @@ class ProjectXML:
             inputsNode = ET.SubElement(subRealizationNode, "Inputs")
         if append == 'True' and type == "Vector":
             vectorNode = ET.SubElement(inputsNode, "Vector")
+            if oid is not '':
+                vectorNode.set('id', oid)
             if guid is not '':
                 vectorNode.set('guid', guid)
             nameNode = ET.SubElement(vectorNode, "Name")
@@ -152,6 +154,8 @@ class ProjectXML:
             pathNode.text = str(path)
         elif append != 'True' and type == "Vector":
             vectorNode = ET.SubElement(inputsNode, "Vector")
+            if oid is not '':
+                vectorNode.set('id', oid)
             if guid is not '':
                 vectorNode.set('guid', guid)
             nameNode = ET.SubElement(vectorNode, "Name")
@@ -160,6 +164,8 @@ class ProjectXML:
             pathNode.text = str(path)
         if append == 'True' and type == "DataTable":
             tableNode = ET.SubElement(inputsNode, "DataTable")
+            if oid is not '':
+                tableNode.set('id', oid)
             if guid is not '':
                 tableNode.set('guid', guid)
             nameNode = ET.SubElement(tableNode, "Name")
@@ -168,6 +174,8 @@ class ProjectXML:
             pathNode.text = str(path)
         elif append != "True" and type == "DataTable":
             tableNode = ET.SubElement(inputsNode, "DataTable")
+            if oid is not '':
+                tableNode.set('id', oid)
             if guid is not '':
                 tableNode.set('guid', guid)
             nameNode = ET.SubElement(tableNode, "Name")

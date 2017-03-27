@@ -104,7 +104,7 @@ def metadata(ecXML, in_fc, out_fc, real_id):
     ecXML.addMeta("Model", MODEL_RF, ecXML.project)
     # Add Realization Input tags
     ecXML.addRealizationInputData(ecXML.project, "Vector", "EC", real_id, "Segmented Stream Network", in_fc,
-                                  ecXML.getUUID())
+                                  "STRM_LINE", ecXML.getUUID())
     ecXML.addRealizationInputRef(ecXML.project, "DataTable", "EC", real_id, "PARAM_TABLE")
     ecXML.addMeta("Predict Start Time", timeStart, ecXML.project, "EC", real_id)
     ecXML.addMeta("Predict Stop Time", timeStop, ecXML.project, "EC", real_id)

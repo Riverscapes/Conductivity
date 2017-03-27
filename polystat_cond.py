@@ -17,7 +17,7 @@ import metadata.meta_sfr as meta_sfr
 import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
-version = "0.5.3"
+version = "0.5.4"
 
 # start processing time
 startTime = time.time()
@@ -193,7 +193,7 @@ def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, r
     # Add Parameter tags
     ecXML.addParameter("Environmental Parameter Workspace", env_dir, ecXML.project, "EC", real_id)
     # Add Realization input tags
-    ecXML.addRealizationInputData(ecXML.project, "Vector", "EC", real_id, "Catchment Area Polygons", calc_ply, ecXML.getUUID())
+    ecXML.addRealizationInputData(ecXML.project, "Vector", "EC", real_id, "Catchment Area Polygons", calc_ply, "CATCH_POLY", ecXML.getUUID())
     ecXML.addRealizationInputRef(ecXML.project, "Raster", "EC", real_id, "PARAMs")
     # Add Analysis output tags
     ecXML.addOutput("DataTable", "Environmental Parameter Table", out_tbl, ecXML.realizations, "EC", real_id, "PARAM_TABLE",
