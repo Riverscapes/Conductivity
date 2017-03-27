@@ -10,7 +10,7 @@ Currently, **Conductivity Tools** includes two tools: *Pre-process Environmental
 
 ## Download
 
-#### [Current Version (0.5.4)](https://github.com/SouthForkResearch/conductivity/archive/master.zip) released on 3/8/2017.
+#### [Current Version (0.5.4)](https://github.com/SouthForkResearch/conductivity/archive/master.zip) released on 3/27/2017.
 * Revised output Riverscapes Project XML file.
 
 ### Requirements
