@@ -17,7 +17,7 @@ import metadata.meta_sfr as meta_sfr
 import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
-version = "0.5.5"
+version = "0.5.6"
 
 # start processing time
 startTime = time.time()

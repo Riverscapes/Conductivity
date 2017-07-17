@@ -17,6 +17,8 @@ import metadata.meta_sfr as meta_sfr
 import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
+version = "0.5.6"
+
 arcpy.env.overwriteOutput = True
 
 # input variables
@@ -133,6 +135,8 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
     in_fc_type = arcpy.Describe(in_fc_dir).workspaceType
     if in_fc_type == "LocalDatabase":
         in_shp_name = in_fc_name + ".shp"
+    else:
+        in_shp_name = in_fc_name
 
     # initiate generic metadata XML object
     time_stamp = time.strftime("%Y%m%d%H%M")
