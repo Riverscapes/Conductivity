@@ -19,13 +19,13 @@ class ProjectXML:
         ProjectXML object instance
     """
 
-    def __init__(self, tool, filepath, projType='', name=''):
+    def __init__(self, status, filepath, projType='', name=''):
         # Get the start timestamp
         self.timestampStart = datetime.datetime.now().isoformat()
 
         self.logFilePath = filepath
         self.realIDdict = {}
-        if tool == "polystat":
+        if status == "new":
             if os.path.isfile(self.logFilePath):
                 os.remove(self.logFilePath)
 
@@ -47,15 +47,17 @@ class ProjectXML:
             self.MetaData = ET.SubElement(self.project, "MetaData")
             self.Inputs = ET.SubElement(self.project, "Inputs")
             self.realizations = ET.SubElement(self.project, "Realizations")
-
-        else:
+        elif status == "existing":
+            # if there is an existing realization
             if os.path.isfile(self.logFilePath):
                 self.projectTree = ET.parse(filepath)
                 self.project = self.projectTree.getroot()
                 for node in self.project.getiterator():
                     if node.tag == 'Realizations':
                         self.realizations = node
-            self.getRealIDs(self.realizations)
+            # if this is the first realization
+            if self.realizations.__len__() > 0:
+                self.getRealIDs(self.realizations)
 
 
     def getOperator(self):
@@ -251,6 +253,23 @@ class ProjectXML:
 
     def getUUID(self):
         return str(uuid.uuid4()).upper()
+
+
+    def getProjectName(self, parentNode, nameNode):
+        listNodeValues = []
+        for node in parentNode.findall(nameNode):
+            listNodeValues.append(node.text.strip())
+        return listNodeValues
+
+
+    def getRealNames(self, parentNode, realNode):
+        listNodeValues = []
+        realizationNode = parentNode.find("Realizations")
+        listSubRealizationNodes = realizationNode.findall(realNode)
+        for node in listSubRealizationNodes:
+            nameNode = node.find("Name")
+            listNodeValues.append(nameNode.text.strip())
+        return listNodeValues
 
 
     def getRealIDs(self, parentNode):

@@ -17,7 +17,7 @@ import metadata.meta_sfr as meta_sfr
 import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
-version = "0.5.6"
+version = "1.0.0"
 
 # start processing time
 startTime = time.time()
@@ -33,10 +33,9 @@ calc_ply = arcpy.GetParameterAsText(0) # polygon feature class (i.e. catchments)
 env_dir = arcpy.GetParameterAsText(1) # directory containing the conductivity model raster inputs.
 out_tbl = arcpy.GetParameterAsText(2) # directory location for parameter summary table output.
 rs_bool = arcpy.GetParameterAsText(3) # boolean parameter to indicate if Riverscapes project outputs are required
-wshd_name = arcpy.GetParameterAsText(4) # name of project watershed. required for Riverscape XML file.
+rs_dir = arcpy.GetParameterAsText(4) # directory where Riverscapes project files will be written
 rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name
 rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes realization name
-rs_dir = arcpy.GetParameterAsText(7) # directory where Riverscapes project files will be written
 
 
 # constants
@@ -168,7 +167,7 @@ def clear_inmemory():
     return
 
 
-def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, real_id):
+def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, real_name, real_id):
     """Builds and writes an XML file according to the Riverscapes Project specifications
 
         Args:
@@ -179,11 +178,6 @@ def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, r
     timeStart, timeStop = ecXML.finalize()
 
     ecXML.getOperator()
-    # Add Meta tags
-    huc_id = rs.getHUCID(wshd_name)
-    ecXML.addMeta("HUCID", huc_id, ecXML.project)
-    ecXML.addMeta("Region", "CRB", ecXML.project)
-    ecXML.addMeta("Watershed", wshd_name, ecXML.project)
     # Add Realization tags
     ecXML.addRealization(real_name, real_id, timeStop, version, ecXML.getUUID())
     ecXML.addMeta("Operator", ecXML.operator, ecXML.project, "EC", real_id)
@@ -201,7 +195,7 @@ def metadata(ecXML, calc_ply, env_dir, out_tbl, rs_bool, wshd_name, real_name, r
     ecXML.write()
 
 
-def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = '', real_name='', rs_dir=''):
+def main(in_fc, env_dir, out_tbl, rs_bool, rs_dir='', proj_name = '', real_name=''):
     """Main processing function"""
 
     in_fc_dir = os.path.dirname(in_fc)
@@ -210,8 +204,8 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = ''
     out_tbl_name = os.path.basename(out_tbl)
 
     in_fc_type = arcpy.Describe(in_fc_dir).workspaceType
-    if in_fc_type == "LocalDatabase":
-        in_shp_name = in_fc_name + ".shp"
+    if in_fc_type == "LocalDatabase" or in_fc_type == "FileSystem":
+        in_shp_name = in_fc_name
 
     # initiate generic metadata XML object
     time_stamp = time.strftime("%Y%m%d%H%M")
@@ -225,13 +219,12 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = ''
 
     # initiate Riverscapes project XML object
     if rs_bool == "true":
-        rs.writeRSRoot(rs_dir)
         rs_xml = "{0}\\{1}".format(rs_dir, "project.rs.xml")
-        projectXML = meta_rs.ProjectXML("polystat", rs_xml, "EC", proj_name)
+        projectXML = meta_rs.ProjectXML("existing", rs_xml, "EC", proj_name)
 
     # run the environmental parameter summary
-    addFieldsFC = addParamFields(in_fc, inParam)
-    calcParamsFC = calcParams(addFieldsFC, env_dir, inParam)
+    addFieldsFC = addParamFields(in_fc, PARAM_LIST)
+    calcParamsFC = calcParams(addFieldsFC, env_dir, PARAM_LIST)
     arcpy.TableToTable_conversion(calcParamsFC, out_dir, out_tbl_name)
 
     # finalize and write generic XML file
@@ -257,7 +250,6 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = ''
                  env_dir,
                  rel_tbl_path,
                  rs_bool,
-                 wshd_name,
                  real_name,
                  real_id)
 
@@ -266,9 +258,9 @@ def main(in_fc, out_tbl, env_dir, inParam, rs_bool, wshd_name='', proj_name = ''
     arcpy.Delete_management(calcParamsFC)
     clear_inmemory()
 
-if __name__ == "__main__":
-    main(calc_ply, out_tbl, env_dir, PARAM_LIST, rs_bool, wshd_name, rs_proj_name, rs_real_name, rs_dir)
 
+if __name__ == "__main__":
+    main(calc_ply, env_dir, out_tbl, rs_bool, rs_dir, rs_proj_name, rs_real_name)
 
 # end processing time
 printTime = strftime("%a, %d %b %Y %H:%M:%S")

@@ -17,17 +17,16 @@ import metadata.meta_sfr as meta_sfr
 import metadata.meta_rs as meta_rs
 import riverscapes as rs
 
-version = "0.5.6"
-
 arcpy.env.overwriteOutput = True
 
 # input variables
 in_fc = arcpy.GetParameterAsText(0) # stream network polyline feature class (i.e. segments)
-in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters ( i.e. ws_cond_param.dbf)
+in_params = arcpy.GetParameterAsText(1) # filepath to the dbf file with summarized parameters
 out_fc = arcpy.GetParameterAsText(2) # stream network polyline feature class, with predicted conductivity
 rs_bool = arcpy.GetParameterAsText(3) # Boolean value indicates if this is a Riverscapes project
 rs_dir = arcpy.GetParameterAsText(4) # Directory where Riverscapes project files will be written
-rs_real_name = arcpy.GetParameterAsText(5) # Riverscapes project realization name.
+rs_proj_name = arcpy.GetParameterAsText(5) # Riverscapes project name.
+rs_real_name = arcpy.GetParameterAsText(6) # Riverscapes project realization name.
 
 # constants
 MODEL_RF = "rf17bCnd9" # name of random forest model (source: Carl Saunders, ELR)
@@ -116,7 +115,7 @@ def metadata(ecXML, in_fc, out_fc, real_id):
     ecXML.write()
 
 
-def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
+def main(in_fc, in_params, out_fc, rs_bool, rs_dir, rs_proj_name, rs_real_name):
     """Main processing function for the Predict Conductivity tool.
 
     Args:
@@ -155,7 +154,7 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
         # initiate Riverscapes project XML object and start processing timestamp
         if rs_bool == "true":
             rs_xml = "{0}\\{1}".format(rs_dir, "project.rs.xml")
-            projectXML = meta_rs.ProjectXML("predict", rs_xml)
+            projectXML = meta_rs.ProjectXML("existing", rs_xml)
 
         # variables for the subprocess function
         scriptPathName = os.path.realpath(__file__)
@@ -220,4 +219,4 @@ def main(in_fc, in_params, out_fc, rs_bool, rs_dir):
     return
 
 if __name__ == "__main__":
-    main(in_fc, in_params, out_fc, rs_bool, rs_dir)
+    main(in_fc, in_params, out_fc, rs_bool, rs_dir, rs_proj_name, rs_real_name)
