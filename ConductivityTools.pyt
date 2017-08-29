@@ -6,7 +6,7 @@ import polystat_cond
 import predict_cond
 
 # CONSTANTS
-version = "1.0.2"
+version = "1.0.3"
 list_wshd = ['Big-Navarro-Garcia (CA)',
              'Clearwater',
              'Entiat',
