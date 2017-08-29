@@ -37,6 +37,7 @@ def main(rs_dir, region_name, wshd_name, proj_name):
     # initiate Riverscapes project XML object and create folders, if user-supplied workspace is blank
     if not os.path.isfile(os.path.join(rs_dir, rs_xml)):
         rs.writeRSRoot(rs_dir)
+        rs.writeRSDirs(rs_dir)
         projectXML = meta_rs.ProjectXML("new", rs_xml, "EC", proj_name)
         metadata(projectXML, region_name, wshd_name, proj_name)
     else:
