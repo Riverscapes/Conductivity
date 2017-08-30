@@ -239,7 +239,7 @@ def main(in_fc, env_dir, out_tbl, rs_bool, rs_dir='', proj_name = '', real_name=
         # copy input/output data to Riverscapes project directories
         abs_fc_path = os.path.join(rs.getRSDirAbs(rs_dir, 1, 0, real_id), in_fc_name)
         abs_tbl_path = os.path.join(rs.getRSDirAbs(rs_dir, 1, 1, real_id), out_tbl_name)
-        rs.writeRSDirs(rs_dir, real_id)
+        rs.writeRealDir(rs_dir, real_id)
         rs.copyRSFiles(in_fc, abs_fc_path)
         rs.copyRSFiles(out_tbl, abs_tbl_path)
         # write project XML file. Note the use of the 'relative path version' of get directories function
