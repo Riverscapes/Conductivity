@@ -1,6 +1,6 @@
-## Using the Conductivity Tools
+### Using the Conductivity Tools
 
-### Data Input Variables
+#### Data Input Variables
 
 **Pre-process Environmental Parameters** 
 
@@ -23,7 +23,7 @@ for one of the 19 environmental variables required by the Random Forest conducti
 (μS cm<sup>−1</sup>) joined as a new attribute field.
 * *Output Metadata XML file* - XML file which stores metadata about the modeling process.
 
-### Automated Processing Steps
+#### Automated Processing Steps
 
 *Pre-process Environmental Parameter*
 

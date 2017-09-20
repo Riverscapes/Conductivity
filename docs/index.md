@@ -1,9 +1,12 @@
-# Conductivity Model
+---
+title: Conductivity Tools
+weight: 1
+---
 
-## Summary
+### Summary
 
 Electrical conductivity has been shown to be a potential indicator of aquatic macroinvertebrate species richness
- (Spieles and Mitsch 2000, Brown, Hannah et al. 2007) and also can influence faunal life stages (Tarín and Cano 
+ (Spieles and Mitsch 2000, Brown, Hannah et al. 2007) and can also influence faunal life stages (Tarín and Cano 
  2000). Preliminary gross primary productivity model development work by 
  [Eco Logical Research, Inc.](https://sites.google.com/a/ecologicalresearch.net/ecologicalreseach-net/) (ELR) has
   shown promising results using temperature, solar inputs, and conductivity as inputs. By incorporating a previously 

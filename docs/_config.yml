@@ -5,6 +5,7 @@ description: > # this means to ignore newlines until "baseurl:"
 url: https://riverscapes.github.io
 baseurl: "/Conductivity"
 port: 4001
+
 # Build settings
 markdown: kramdown
 highlighter: rouge
@@ -16,12 +17,25 @@ defaults:
     values:
       layout: "default"
 
-
-layouts_dir:  src/_layouts
-includes_dir: src/_includes
-
+# Files/Folders to exclude from publishing
 exclude:
   - src
   - LICENSE
   - README.md
   - _config.yml
+
+# Where our layouts and templates are stored
+layouts_dir:  src/_layouts
+includes_dir: src/_includes
+
+# These are theme settings that will be used to turn features on and off
+# They are not part of Jekyll, they are entirely custom.
+settings:
+  # Turn the automatically generated page contents on and off
+  autoPageContents:
+    active: true
+    onHome: true
+  # Options for the sidebar menu
+  sideMenu:
+    homeItem: true
+    startExpanded: true
