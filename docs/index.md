@@ -13,6 +13,8 @@ Electrical conductivity has been shown to be a potential indicator of aquatic ma
   developed electrical conductivity predictive regression model (Olson and Hawkins 2012), we built an automated 
   workflow for predicting conductivity for a stream network, summarizing predicted upstream conductivity values 
   (μS cm<sup>−1</sup>) per 1000 meter stream segments.
+  
+![conductivity_example]({{site.baseurl}}/images/cond_SummaryFig.png)
 
 The random forest electrical conductivity model was developed using 19 environmental parameters (detailed in 
 [Olson and Hawkins, 2012](http://onlinelibrary.wiley.com/doi/10.1029/2011WR011088/abstract)). To determine predicted 
