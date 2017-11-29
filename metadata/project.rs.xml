@@ -1,0 +1,95 @@
+<?xml version="1.0" ?>
+<Project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Riverscapes/Program/master/Project/XSD/V1/Project.xsd">
+	<Name>
+		Minam Predicted Conductivity
+	</Name>
+	<ProjectType>
+		EC
+	</ProjectType>
+	<MetaData>
+		<Meta name="HUCID">
+			1706010505
+		</Meta>
+		<Meta name="Region">
+			CRB
+		</Meta>
+		<Meta name="Watershed">
+			Minam
+		</Meta>
+		<Meta name="Model">
+			rf17bCnd9
+		</Meta>
+	</MetaData>
+	<Inputs/>
+	<Realizations>
+		<EC dateCreated="2016-12-06T13:14:58.500000" guid="4034C220-DB92-4852-8242-1D6007AD1658" id="run201612061314" productVersion="0.2">
+			<Name>
+				Realization Run 01
+			</Name>
+			<MetaData>
+				<Meta name="Operator">
+					jlangdon
+				</Meta>
+				<Meta name="ComputerID">
+					SFR
+				</Meta>
+				<Meta name="Polystat Start Time">
+				</Meta>
+				<Meta name="Polystat Stop Time">
+				</Meta>
+				<Meta name="Predict Start Time">
+					2016-12-06T13:14:55.500000
+				</Meta>
+				<Meta name="Predict Stop Time">
+					2016-12-06T13:14:58.500000
+				</Meta>
+			</MetaData>
+			<Parameters>
+				<Param name="Environmental Parameter Workspace">
+					C:\JL\ISEMP\Data\ec\model\Grids_rsmp
+				</Param>
+			</Parameters>
+			<Inputs>
+				<Vector guid="20D5F323-23C4-43D0-BC31-7F875A051B80">
+					<Name>
+						Catchment Area Polygons
+					</Name>
+					<Path>
+						Realizations\run201612061314\Inputs\catch_noErrors.shp
+					</Path>
+				</Vector>
+				<Vector guid="94A6213E-0A95-4D3E-8CE2-5FFF21B1F076">
+					<Name>
+						Segmented Stream Network
+					</Name>
+					<Path>
+						Realizations\run201612061314\Inputs\seg_1000m_20161129.shp
+					</Path>
+				</Vector>
+				<DataTable ref="PARAM_TABLE"/>
+			</Inputs>
+			<Analyses>
+				<Analysis>
+					<Outputs>
+						<DataTable guid="6AA89A7D-0657-4F2D-A1EB-4BD26591DB1A" id="PARAM_TABLE">
+							<Name>
+								Environmental Parameter Table
+							</Name>
+							<Path>
+								Realizations\run201612061314\PreprocessOutput\ws_cond_param.dbf
+							</Path>
+						</DataTable>
+						<Vector guid="880F4E3D-452B-4AF9-AD33-651565375603" id="PRED">
+							<Name>
+								Predicted Electrical Conductivity
+							</Name>
+							<Path>
+								Realizations\run201612061314\PredictOutput\cond_methow_20161206.shp
+							</Path>
+						</Vector>
+					</Outputs>
+				</Analysis>
+			</Analyses>
+		</EC>
+	</Realizations>
+</Project>

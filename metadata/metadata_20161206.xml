@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Metadata metadata_version="0.3" script_version="0.3" type="SFR Processing">
+  <Tool>
+    <Name>Predict Conductivity Tool</Name>
+    <Version>0.2</Version>
+  </Tool>
+  <Processing>
+    <ComputerID>SFR_Processor</ComputerID>
+    <Operator>SFR_Admin</Operator>
+    <Runs>
+      <Run status="Success">
+        <TimeStart>2016-12-06T13:14:55</TimeStart>
+        <TimeStop>2016-12-06T13:14:58</TimeStop>
+        <TotalProcessingTime>3.105</TotalProcessingTime>
+        <Parameters>
+          <Parameter>
+            <Name>Stream Network Polyline Feature Class</Name>
+            <Value>C:\SFR\Jesse\Model\conductivity\Methow\_1Sources\segments_20161129.gdb\seg_1000m_20161129</Value>
+          </Parameter>
+          <Parameter>
+            <Name>Environmental Parameter Table</Name>
+            <Value>C:\SFR\Jesse\Model\conductivity\Methow\_2Model\ws_cond_param.dbf</Value>
+          </Parameter>
+        </Parameters>
+        <Outputs>
+          <Output>
+            <Name>Predicted Conductivity Output Feature Class</Name>
+            <Value>C:\SFR\Jesse\Model\conductivity\Methow\_2Model\cond_methow_20161206.shp</Value>
+          </Output>
+        </Outputs>
+        <Messages />
+        <Results />
+      </Run>
+    </Runs>
+  </Processing>
+</Metadata>
