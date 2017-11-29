@@ -35,3 +35,18 @@ for one of the 19 environmental variables required by the Random Forest conducti
 
 4.  Predict conductivity values per segment endpoint record using a random forest model.
 5.  Join predicted conductivity values back to segmented stream network polyline feature class.
+
+#### Metadata
+
+Currently the Conductivity Tools produce XML files when the tools are run in ArcGIS. These XML  files store metadata 
+about the input and output parameters specified in each model run, as well as user-specified tool parameter values when 
+applicable.
+
+* **metadata_YYYYMMDD.xml** · This XML file is written by default when the second tool in the workflow – Predict 
+Conductivity – is run. This file stores basic information, including start and stop times, total processing time, and 
+the name and local directory locations of input and output files.
+* **project.rs.xml** · This is an optional output, and is only written if the user indicates that the model run is part 
+of a Riverscapes project. The project.rs.xml is more extensive then the Metadata_YYYYMMDD.xml file, and typically 
+includes metadata about the spatial extent of the project, model settings, the Riverscapes project name, a “realization”
+ representing the specific inputs and parameters associated with the model run, and an “analysis” which is defined by 
+ the model data outputs.
